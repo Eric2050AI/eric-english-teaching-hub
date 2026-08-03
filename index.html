@@ -2315,12 +2315,7 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
-  function todayStr(){
-    var d = new Date();
-    return d.getFullYear() + "-" +
-      String(d.getMonth()+1).padStart(2,"0") + "-" +
-      String(d.getDate()).padStart(2,"0");
-  }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
   function mostCommon(arr){
     var count = {}, best=null, bestN=0;
     arr.forEach(function(v){ if(!v) return; count[v]=(count[v]||0)+1; });
@@ -3350,6 +3345,19 @@
       "</div>";
   }
 
+  // 两栏都常显：评级好也可能有要改进的地方，评级差也可能有做得好的地方
+  function modTagSections(m, md, withNote){
+    return "<div class='detail-zone'><div class='lbl'>表现好的方面（选填）</div>" +
+        modTagBlock(m, "good", md.goodTags) +
+      "</div>" +
+      "<div class='detail-zone'><div class='lbl'>待提升的方面（选填）</div>" +
+        modTagBlock(m, "bad", md.badTags) +
+        (withNote
+          ? "<textarea class='free-input auto-grow' rows='1' data-mnote='"+m.key+"' placeholder='补充说明…'>"+esc(md.note||"")+"</textarea>"
+          : "") +
+      "</div>";
+  }
+
   function chipRow(tags, selected, attr, cls){
     return tags.map(function(t){
       var sel = (selected||[]).indexOf(t) !== -1 ? " selected" : "";
@@ -3451,14 +3459,7 @@
             }).join("") + "</div>";
           }
 
-          var effRate = autoRate;
-          if(effRate === "一般" || effRate === "待改进"){
-            block += "<div class='detail-zone'><div class='lbl'>待提升的具体方面</div>" +
-              modTagBlock(m, "bad", md.badTags) + "</div>";
-          } else if(effRate === "优秀" || effRate === "良好"){
-            block += "<div class='detail-zone'><div class='lbl'>表现好的方面（选填）</div>" +
-              modTagBlock(m, "good", md.goodTags) + "</div>";
-          }
+          if(autoRate) block += modTagSections(m, md, false);
         } else if(m.scored){
           var score = md.score, total = md.total;
           var pct = (score !== "" && score != null && total) ? Math.round(Number(score)/Number(total)*100) : null;
@@ -3471,13 +3472,7 @@
           block += "</div>";
           block += "<div class='lbl' style='font-size:12px;color:#64748B;font-weight:600;'>错词 / 错题</div>";
           block += "<textarea class='free-input auto-grow' rows='1' style='margin-top:4px;' data-mwrong='"+m.key+"' placeholder='可写多个，换行或顿号分隔…'>"+esc(md.wrongWords||"")+"</textarea>";
-          if(autoRate2 === "一般" || autoRate2 === "待改进"){
-            block += "<div class='detail-zone'><div class='lbl'>待提升的具体方面</div>" +
-              modTagBlock(m, "bad", md.badTags) + "</div>";
-          } else if(autoRate2 === "优秀" || autoRate2 === "良好"){
-            block += "<div class='detail-zone'><div class='lbl'>表现好的方面（选填）</div>" +
-              modTagBlock(m, "good", md.goodTags) + "</div>";
-          }
+          if(autoRate2) block += modTagSections(m, md, false);
         } else {
           block += "</div>";
           block += "<div class='rate-row'>" + RATE_LEVELS.map(function(lv){
@@ -3506,14 +3501,7 @@
             block += "</div>";
           }
 
-          if(md.rate === "一般" || md.rate === "待改进"){
-            block += "<div class='detail-zone'><div class='lbl'>待提升的具体方面（可多选）</div>" +
-              modTagBlock(m, "bad", md.badTags) +
-              "<textarea class='free-input auto-grow' rows='1' data-mnote='"+m.key+"' placeholder='补充说明…'>"+esc(md.note||"")+"</textarea></div>";
-          } else if(md.rate === "优秀" || md.rate === "良好"){
-            block += "<div class='detail-zone'><div class='lbl'>表现好的方面（选填）</div>" +
-              modTagBlock(m, "good", md.goodTags) + "</div>";
-          }
+          if(md.rate) block += modTagSections(m, md, true);
         }
         block += "</div>";
         return block;
