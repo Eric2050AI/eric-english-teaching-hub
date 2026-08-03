@@ -2457,7 +2457,11 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
-  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  // 日期按浏览器本地时区计算；toISOString() 是 UTC，在中国凌晨会落到前一天。
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
   function mostCommon(arr){
     var count = {}, best=null, bestN=0;
     arr.forEach(function(v){ if(!v) return; count[v]=(count[v]||0)+1; });
