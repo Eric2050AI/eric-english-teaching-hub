@@ -3346,15 +3346,14 @@
   }
 
   // 两栏都常显：评级好也可能有要改进的地方，评级差也可能有做得好的地方
-  function modTagSections(m, md, withNote){
+  function modTagSections(m, md){
     return "<div class='detail-zone'><div class='lbl'>表现好的方面（选填）</div>" +
         modTagBlock(m, "good", md.goodTags) +
       "</div>" +
       "<div class='detail-zone'><div class='lbl'>待提升的方面（选填）</div>" +
         modTagBlock(m, "bad", md.badTags) +
-        (withNote
-          ? "<textarea class='free-input auto-grow' rows='1' data-mnote='"+m.key+"' placeholder='补充说明…'>"+esc(md.note||"")+"</textarea>"
-          : "") +
+        "<textarea class='free-input auto-grow' rows='2' data-mnote='"+m.key+"' " +
+          "placeholder='补充说明 / 错题记录…（可写多条，换行或分号分隔）'>"+esc(md.note||"")+"</textarea>" +
       "</div>";
   }
 
@@ -3459,7 +3458,7 @@
             }).join("") + "</div>";
           }
 
-          if(autoRate) block += modTagSections(m, md, false);
+          if(autoRate) block += modTagSections(m, md);
         } else if(m.scored){
           var score = md.score, total = md.total;
           var pct = (score !== "" && score != null && total) ? Math.round(Number(score)/Number(total)*100) : null;
@@ -3472,7 +3471,7 @@
           block += "</div>";
           block += "<div class='lbl' style='font-size:12px;color:#64748B;font-weight:600;'>错词 / 错题</div>";
           block += "<textarea class='free-input auto-grow' rows='1' style='margin-top:4px;' data-mwrong='"+m.key+"' placeholder='可写多个，换行或顿号分隔…'>"+esc(md.wrongWords||"")+"</textarea>";
-          if(autoRate2) block += modTagSections(m, md, false);
+          if(autoRate2) block += modTagSections(m, md);
         } else {
           block += "</div>";
           block += "<div class='rate-row'>" + RATE_LEVELS.map(function(lv){
@@ -3501,7 +3500,7 @@
             block += "</div>";
           }
 
-          if(md.rate) block += modTagSections(m, md, true);
+          if(md.rate) block += modTagSections(m, md);
         }
         block += "</div>";
         return block;
