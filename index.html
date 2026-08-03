@@ -1771,11 +1771,82 @@
   var cloudReady = false;        // 是否已登录并完成首次拉取
   var pendingKeys = {};          // 待推送的键
   var pushTimer = null;
+  var pushing = false;           // 正在推送，避免并发互相覆盖
   var syncState = "offline";     // offline | syncing | synced | error | local
   var syncNote = "";
 
   var _lsSet = localStorage.setItem.bind(localStorage);
   var _lsGet = localStorage.getItem.bind(localStorage);
+
+  /* ---------------------------------------------------------------------
+     版本水位线：记住每个键"我上次见到的云端时间戳"。
+     推送前拿它和云端实际时间戳比一比，就能发现别的设备改过东西，
+     从而先合并再推——否则旧副本一推就把新数据抹掉（多设备丢数据的根源）。
+     --------------------------------------------------------------------- */
+  var STORAGE_SYNC_META = "esm_sync_meta_v1";   // 纯本地状态，不参与同步
+  function loadSyncMeta(){
+    try { return JSON.parse(_lsGet(STORAGE_SYNC_META) || "{}"); } catch(e){ return {}; }
+  }
+  function saveSyncMeta(m){ _lsSet(STORAGE_SYNC_META, JSON.stringify(m)); }
+
+  function isPlainObj(x){
+    return x && typeof x === "object" && !Array.isArray(x);
+  }
+  function recTime(r){
+    return String((r && (r.updatedAt || r.createdAt)) || "");
+  }
+  // 记录身份：有 id 用 id，没有就用整条内容（够用于 class_students 这类配对表）
+  function recKey(r){
+    if(isPlainObj(r) && r.id) return "id:" + r.id;
+    return "raw:" + JSON.stringify(r);
+  }
+
+  /* 合并规则：
+     - 数组 → 按记录身份取并集；两边都有同一条时，updatedAt 新的胜出，
+       没有时间戳就保留本机版本（用户刚在这台设备上操作，意图更明确）
+     - 对象字典 → 逐键递归合并
+     - 其它（字符串/数字）→ 保留本机
+     任何一边为空就直接采用另一边。 */
+  function mergeValues(local, remote){
+    if(local === null || local === undefined) return remote;
+    if(remote === null || remote === undefined) return local;
+
+    if(Array.isArray(local) && Array.isArray(remote)){
+      var out = [], pos = {};
+      remote.forEach(function(r){ var k = recKey(r); if(pos[k] === undefined){ pos[k] = out.length; out.push(r); } });
+      local.forEach(function(l){
+        var k = recKey(l);
+        if(pos[k] === undefined){ pos[k] = out.length; out.push(l); return; }
+        var r = out[pos[k]];
+        out[pos[k]] = (recTime(r) > recTime(l)) ? r : l;
+      });
+      return out;
+    }
+
+    if(isPlainObj(local) && isPlainObj(remote)){
+      var o = {};
+      Object.keys(remote).forEach(function(k){ o[k] = remote[k]; });
+      Object.keys(local).forEach(function(k){
+        o[k] = (k in remote) ? mergeValues(local[k], remote[k]) : local[k];
+      });
+      return o;
+    }
+
+    return local;
+  }
+
+  /* 把云端某个键合并进本地（用原始 setItem，避免又触发一轮推送）。
+     返回 true 表示合并结果比云端多东西——本机有云端没有的记录，
+     需要回推一次，否则这些记录会永远卡在这台设备上。 */
+  function mergeRemoteKey(key, remoteVal){
+    var raw = _lsGet(key);
+    var local = null;
+    if(raw){ try { local = JSON.parse(raw); } catch(e){ local = null; } }
+    var merged = mergeValues(local, remoteVal);
+    var mergedStr = JSON.stringify(merged);
+    _lsSet(key, mergedStr);
+    return mergedStr !== JSON.stringify(remoteVal);
+  }
 
   function cloudConfigured(){
     return SUPABASE_URL.indexOf("http") === 0 && SUPABASE_ANON.length > 20;
@@ -1805,51 +1876,118 @@
     el.className = "sync-badge " + m.cls;
     el.textContent = m.t;
     el.title = note || m.t;
+    if(note && state !== "syncing") syncToast(note);
   }
 
-  function schedulePush(){
+  // 同步提示条：合并、拉取这类事必须让人看见，光靠 title 提示等于没有
+  var _toastTimer = null;
+  function syncToast(msg){
+    var t = document.getElementById("syncToast");
+    if(!t){
+      t = document.createElement("div");
+      t.id = "syncToast";
+      t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);" +
+        "background:#172033;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;" +
+        "box-shadow:0 8px 24px rgba(23,32,51,.28);z-index:200;opacity:0;transition:opacity .2s;" +
+        "max-width:76vw;text-align:center;pointer-events:none;";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = "1";
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function(){ t.style.opacity = "0"; }, 3600);
+  }
+
+  function schedulePush(delay){
     setSyncState("syncing");
     clearTimeout(pushTimer);
-    pushTimer = setTimeout(flushPush, 900);   // 防抖，连续操作只推一次
+    pushTimer = setTimeout(flushPush, delay == null ? 900 : delay);   // 防抖，连续操作只推一次
   }
 
+  /* 推送分两步：
+     1) 先查这些键在云端的时间戳，比水位线新的说明别的设备改过 → 先合并到本地
+     2) 再把合并后的本地值推上去
+     这样两台设备各自新增的记录都能保住，不会互相抹掉。 */
   function flushPush(){
-    if(!sb || !cloudReady) return;
+    if(!sb || !cloudReady || pushing) return;
+    clearTimeout(pushTimer);
     var keys = Object.keys(pendingKeys);
     if(!keys.length){ setSyncState("synced"); return; }
     pendingKeys = {};
+    pushing = true;
+    setSyncState("syncing");
 
-    var rows = keys.map(function(k){
-      var raw = _lsGet(k);
-      return {
-        key: k,
-        value: raw ? JSON.parse(raw) : null,
-        updated_at: new Date().toISOString()
-      };
-    });
+    function fail(msg){
+      keys.forEach(function(k){ pendingKeys[k] = true; });   // 放回队列等重试
+      pushing = false;
+      setSyncState("error", msg);
+      setTimeout(flushPush, 8000);
+    }
 
-    sb.from("app_data").upsert(rows, {onConflict:"user_id,key"}).then(function(res){
-      if(res.error){
-        // 推送失败就把键放回队列，等下次重试
-        keys.forEach(function(k){ pendingKeys[k] = true; });
-        setSyncState("error", res.error.message);
-        setTimeout(flushPush, 8000);
-      } else {
-        setSyncState(Object.keys(pendingKeys).length ? "syncing" : "synced");
-      }
-    });
+    sb.from("app_data").select("key,value,updated_at").in("key", keys).then(function(res){
+      if(res.error) return fail(res.error.message);
+
+      var meta = loadSyncMeta(), mergedKeys = [];
+      (res.data || []).forEach(function(row){
+        if(row.value === null || row.value === undefined) return;
+        if(String(row.updated_at || "") > String(meta[row.key] || "")){
+          mergeRemoteKey(row.key, row.value);   // 云端比我见过的新 → 合并，别覆盖
+          mergedKeys.push(row.key);
+        }
+      });
+
+      var rows = keys.map(function(k){
+        var raw = _lsGet(k);
+        if(!raw) return null;
+        try { return {key:k, value: JSON.parse(raw), updated_at: new Date().toISOString()}; }
+        catch(e){ return null; }
+      }).filter(Boolean);
+
+      if(!rows.length){ pushing = false; setSyncState("synced"); return; }
+
+      return sb.from("app_data").upsert(rows, {onConflict:"user_id,key"})
+        .select("key,updated_at").then(function(r2){
+          if(r2.error) return fail(r2.error.message);
+          var m = loadSyncMeta();
+          (r2.data || []).forEach(function(row){ m[row.key] = row.updated_at; });
+          saveSyncMeta(m);
+          pushing = false;
+          // 合并进来了别的设备的数据 → 刷新界面（正在编辑时不动，免得清掉草稿）
+          var note = "";
+          if(mergedKeys.length){
+            if(hasUnsavedDraft()) note = "已合并其他设备的改动，刷新后可见";
+            else { reloadAllFromStorage(); note = "已合并其他设备的改动"; }
+          }
+          setSyncState(Object.keys(pendingKeys).length ? "syncing" : "synced", note);
+          if(Object.keys(pendingKeys).length) schedulePush(300);
+        });
+    }).catch(function(err){ fail((err && err.message) || "推送失败"); });
   }
 
-  // 从云端拉取全部数据写入本地（用原始 setItem，避免又触发推送）
-  function cloudPull(){
-    return sb.from("app_data").select("key,value").then(function(res){
+  // 从云端拉取：同样是合并而不是硬覆盖。返回真正有变化的键
+  function cloudPull(opts){
+    var replace = opts && opts.replace;   // 首次启动时可选择直接采用云端版本
+    return sb.from("app_data").select("key,value,updated_at").then(function(res){
       if(res.error) throw res.error;
+      var meta = loadSyncMeta(), changed = [], needPush = [], rowCount = 0;
       (res.data || []).forEach(function(row){
         if(SYNC_KEYS.indexOf(row.key) === -1) return;
+        rowCount++;
         if(row.value === null || row.value === undefined) return;
-        _lsSet(row.key, JSON.stringify(row.value));
+        var isNew = String(row.updated_at || "") > String(meta[row.key] || "");
+        if(replace) _lsSet(row.key, JSON.stringify(row.value));
+        else if(isNew){ if(mergeRemoteKey(row.key, row.value)) needPush.push(row.key); }
+        else return;
+        meta[row.key] = row.updated_at;
+        changed.push(row.key);
       });
-      return (res.data || []).length;
+      // 本机独有、云端还没有的键，也要补上去
+      SYNC_KEYS.forEach(function(k){
+        if(changed.indexOf(k) === -1 && _lsGet(k) && needPush.indexOf(k) === -1 &&
+           !(res.data || []).some(function(r){ return r.key === k; })) needPush.push(k);
+      });
+      saveSyncMeta(meta);
+      return {rows: rowCount, changed: changed, needPush: needPush};
     });
   }
 
@@ -1861,9 +1999,13 @@
       return {key:k, value: JSON.parse(raw), updated_at:new Date().toISOString()};
     }).filter(Boolean);
     if(!rows.length) return Promise.resolve();
-    return sb.from("app_data").upsert(rows, {onConflict:"user_id,key"}).then(function(res){
-      if(res.error) throw res.error;
-    });
+    return sb.from("app_data").upsert(rows, {onConflict:"user_id,key"})
+      .select("key,updated_at").then(function(res){
+        if(res.error) throw res.error;
+        var m = loadSyncMeta();
+        (res.data || []).forEach(function(row){ m[row.key] = row.updated_at; });
+        saveSyncMeta(m);
+      });
   }
 
   // ---------- 选项字典（种子数据，用户自定义内容会自动追加保存）----------
@@ -3658,6 +3800,9 @@
     curLog.content = document.getElementById("lgContent").value;
     curLog.classNotes = document.getElementById("lgClassNotes").value;
     curLog.lessonNo = document.getElementById("lessonNoInput").value;
+    // 打时间戳：多设备改同一节课时，靠它判断谁的版本更新
+    if(!curLog.createdAt) curLog.createdAt = new Date().toISOString();
+    curLog.updatedAt = new Date().toISOString();
 
     var idx = lessonLogs.findIndex(function(l){ return l.id === curLog.id; });
     if(idx === -1) idx = lessonLogs.findIndex(function(l){ return l.classId === curLog.classId && l.date === curLog.date; });
@@ -6391,8 +6536,22 @@
         anData = null; curLog = null; detailClassId = null;
         renderTable();
         renderBackupPage();
-        alert("导入完成！\n当前共有 " + students.length + " 名学生、" + classes.length + " 个班级、" +
-              lessonLogs.length + " 节课堂登记、" + courses.length + " 节排课课程。");
+        function finishImport(cloudSaved){
+          if(cloudSaved){
+            setSyncState("synced", "导入数据已保存到云端");
+          } else if(cloudReady){
+            setSyncState("error", "导入数据已保存在本机，但云端上传未完成，请点击同步重试");
+          }
+          alert("导入完成！\n当前共有 " + students.length + " 名学生、" + classes.length + " 个班级、" +
+                lessonLogs.length + " 节课堂登记、" + courses.length + " 节排课课程。" +
+                (cloudSaved ? "\n已确认保存到云端。" : cloudReady ? "\n云端上传尚未完成，请稍后点击“同步”。" : ""));
+        }
+        if(cloudReady){
+          setSyncState("syncing", "正在保存导入数据到云端…");
+          flushAndWait(finishImport);
+        } else {
+          finishImport(false);
+        }
         }
       }catch(err){
         alert("导入失败：文件格式不正确。\n请确认选择的是本系统导出的 JSON 备份文件。");
@@ -7576,11 +7735,18 @@
 
     function doSync(){
       cloudPull()
-        .then(function(n){
+        .then(function(r){
           cloudReady = true;
-          if(n === 0){
+          if(r.rows === 0){
             // 云端还是空的：把本机现有数据整体上传一次
             return cloudPushAll().then(function(){ setSyncState("synced", "已把本机数据上传到云端"); });
+          }
+          // 本机有云端缺的记录（比如上次没推成功）→ 立刻补推，别让它烂在本地
+          if(r.needPush.length){
+            r.needPush.forEach(function(k){ pendingKeys[k] = true; });
+            schedulePush(400);
+            setSyncState("syncing", "正在补传本机独有的数据");
+            return;
           }
           setSyncState("synced");
         })
@@ -7670,20 +7836,96 @@
     btnSyncNow.addEventListener("click", function(){
       if(!cloudReady){ alert("当前未连接云端。"); return; }
       setSyncState("syncing");
-      flushPush();
-      cloudPull().then(function(){
+      // 先等推送落地，再拉取，否则两个请求抢同一行会互相覆盖
+      var wait = Object.keys(pendingKeys).length ? new Promise(function(res){
+        flushPush();
+        var t = setInterval(function(){
+          if(!pushing && !Object.keys(pendingKeys).length){ clearInterval(t); res(); }
+        }, 200);
+        setTimeout(function(){ clearInterval(t); res(); }, 6000);
+      }) : Promise.resolve();
+
+      wait.then(cloudPull).then(function(r){
         reloadAllFromStorage();
-        setSyncState("synced", "已手动同步");
+        if(queueNeedPush(r)){ setSyncState("syncing", "正在补传本机独有的数据"); return; }
+        setSyncState("synced", r.changed.length ? ("已同步，更新了 "+r.changed.length+" 项") : "已是最新");
       }).catch(function(err){
         setSyncState("error", (err && err.message) || "同步失败");
       });
     });
   }
 
-  // 关页面前尽量把没推完的数据发出去
-  window.addEventListener("beforeunload", function(){
-    if(cloudReady && Object.keys(pendingKeys).length) flushPush();
+  /* ---------------------------------------------------------------------
+     多设备保活：
+     iPad / 手机上切走 App 或锁屏时，Safari 会直接冻结页面，
+     900ms 的防抖定时器根本来不及跑，beforeunload 在 iOS 上也常常不触发。
+     所以页面一转入后台就立刻把待推数据发出去；回到前台再拉一次云端。
+     --------------------------------------------------------------------- */
+  function flushNow(){
+    if(cloudReady && Object.keys(pendingKeys).length){
+      clearTimeout(pushTimer);
+      flushPush();
+    }
+  }
+
+  // 导入备份后必须等云端写入完成，避免 iPad 刷新或切后台时丢掉刚导入的数据。
+  function flushAndWait(onDone){
+    if(!cloudReady){ if(onDone) onDone(false); return; }
+    clearTimeout(pushTimer);
+    var started = Date.now();
+    function check(){
+      if(!pushing && Object.keys(pendingKeys).length) flushPush();
+      if(!pushing && !Object.keys(pendingKeys).length){
+        if(onDone) onDone(true);
+        return;
+      }
+      if(Date.now() - started >= 12000){
+        if(onDone) onDone(false);
+        return;
+      }
+      setTimeout(check, 150);
+    }
+    check();
+  }
+
+  // 有没有正在编辑、还没保存的东西？有就别自动重载，免得清掉草稿
+  function hasUnsavedDraft(){
+    if(curLog) return true;                                        // 课堂登记面板开着
+    return !!document.querySelector(".modal-overlay.open");        // 有弹窗在填
+  }
+
+  // 拉取时发现本机有云端缺的记录 → 排队补推
+  function queueNeedPush(r){
+    if(!r || !r.needPush || !r.needPush.length) return false;
+    r.needPush.forEach(function(k){ pendingKeys[k] = true; });
+    schedulePush(400);
+    return true;
+  }
+
+  function pullOnReturn(){
+    if(!cloudReady) return;
+    cloudPull().then(function(r){
+      queueNeedPush(r);
+      if(!r.changed.length){ if(!Object.keys(pendingKeys).length) setSyncState("synced"); return; }
+      if(hasUnsavedDraft()){
+        setSyncState("synced", "其他设备有新数据，保存当前内容后点「同步」即可看到");
+      } else {
+        reloadAllFromStorage();
+        setSyncState("synced", "已拉取其他设备的改动");
+      }
+    }).catch(function(err){
+      setSyncState("error", (err && err.message) || "拉取失败");
+    });
+  }
+
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState === "hidden") flushNow();
+    else pullOnReturn();
   });
+  window.addEventListener("pagehide", flushNow);
+  window.addEventListener("blur", flushNow);
+  window.addEventListener("beforeunload", flushNow);
+  window.addEventListener("online", function(){ flushNow(); pullOnReturn(); });
 
   bootstrap();
 })();
