@@ -1368,7 +1368,7 @@
 
         <div class="save-bar">
           <button class="btn btn-primary" id="btnSaveLesson">💾 保存本节课登记</button>
-          <span class="hint" id="lessonSaveHint">登记内容会自动汇总到成长分析</span>
+          <span class="hint" id="lessonSaveHint">边填边自动保存，也可以点左边的按钮手动存一次</span>
         </div>
       </div>
     </div>
@@ -1615,6 +1615,27 @@
             <button class="btn btn-danger" id="btnClearAll">清空全部数据</button>
           </div>
         </div>
+
+        <!-- 跨设备同步出问题时，先来这里看一眼云端到底有什么 -->
+        <div class="bk-col" style="grid-column:1 / -1;">
+          <div class="bk-card">
+            <h3>🔍 云端同步诊断</h3>
+            <div class="desc">
+              手机 / iPad 和电脑数据不一致时，点下面的按钮，看看每块数据在<b>本机</b>和<b>云端</b>各有多少条。
+              条数不一样就说明某一边没传上去或没拉下来。
+            </div>
+            <button class="btn btn-primary" id="btnDiag">检查云端数据</button>
+            <div id="diagOut" style="margin-top:14px;"></div>
+            <div class="bk-note" style="margin-top:14px;">
+              诊断结果里如果<b>云端比本机多</b>，点「用云端覆盖本机」；
+              <b>本机比云端多</b>，点「用本机覆盖云端」。覆盖前请先导出一次备份。
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+              <button class="btn btn-ghost" id="btnForcePull">⬇ 用云端覆盖本机</button>
+              <button class="btn btn-ghost" id="btnForcePush">⬆ 用本机覆盖云端</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1783,6 +1804,58 @@
      推送前拿它和云端实际时间戳比一比，就能发现别的设备改过东西，
      从而先合并再推——否则旧副本一推就把新数据抹掉（多设备丢数据的根源）。
      --------------------------------------------------------------------- */
+  /* 已成功推送到云端的原始字符串快照。
+     所有写入本来靠拦截 localStorage.setItem 来排队推送，但那是个单点：
+     一旦某个浏览器上拦截没生效、或某处漏了 setItem，数据就会静静地留在本地，
+     界面还显示「已同步」。所以再加一道看门狗，定时把快照和实际值比一比，
+     不一致就补推。这样同步不再依赖拦截是否成功。 */
+  var lastSent = {};        // key → 已推送的原始字符串
+  var lastSentCanon = {};   // key → 该字符串的「无序签名」
+  var watchdogTimer = null;
+
+  /* 无序签名：合并后数组顺序、对象键顺序在两台设备上可能不同，
+     内容其实一样。只比字符串会让两台设备互相认为「对方变了」，
+     每 5 秒来回推一次没完没了。所以比签名，不比原文。 */
+  function canonStr(v){
+    if(Array.isArray(v)) return "[" + v.map(canonStr).sort().join(",") + "]";
+    if(isPlainObj(v)){
+      return "{" + Object.keys(v).sort().map(function(k){
+        return JSON.stringify(k) + ":" + canonStr(v[k]);
+      }).join(",") + "}";
+    }
+    return JSON.stringify(v);
+  }
+  function canonOf(raw){
+    if(raw == null) return "";
+    try { return canonStr(JSON.parse(raw)); } catch(e){ return String(raw); }
+  }
+  function noteSent(k, raw){
+    lastSent[k] = raw;
+    lastSentCanon[k] = canonOf(raw);
+  }
+
+  function syncWatchdog(){
+    if(!cloudReady || pushing) return;
+    var found = false;
+    SYNC_KEYS.forEach(function(k){
+      var raw = _lsGet(k);
+      if(raw == null) return;
+      if(lastSent[k] === raw) return;                  // 完全没变
+      if(canonOf(raw) === lastSentCanon[k]){           // 只是顺序不同，内容一致
+        lastSent[k] = raw;
+        return;
+      }
+      pendingKeys[k] = true; found = true;
+    });
+    if(found) schedulePush(200);
+  }
+
+  // 基线由 cloudPull 记录（= 云端此刻的内容），所以本机多出来的记录会被看门狗发现并补推
+  function startWatchdog(){
+    clearInterval(watchdogTimer);
+    watchdogTimer = setInterval(syncWatchdog, 5000);
+  }
+
   var STORAGE_SYNC_META = "esm_sync_meta_v1";   // 纯本地状态，不参与同步
   function loadSyncMeta(){
     try { return JSON.parse(_lsGet(STORAGE_SYNC_META) || "{}"); } catch(e){ return {}; }
@@ -1936,11 +2009,15 @@
         }
       });
 
+      var sent = {};
       var rows = keys.map(function(k){
         var raw = _lsGet(k);
         if(!raw) return null;
-        try { return {key:k, value: JSON.parse(raw), updated_at: new Date().toISOString()}; }
-        catch(e){ return null; }
+        try {
+          var v = JSON.parse(raw);
+          sent[k] = raw;
+          return {key:k, value: v, updated_at: new Date().toISOString()};
+        } catch(e){ return null; }
       }).filter(Boolean);
 
       if(!rows.length){ pushing = false; setSyncState("synced"); return; }
@@ -1951,6 +2028,7 @@
           var m = loadSyncMeta();
           (r2.data || []).forEach(function(row){ m[row.key] = row.updated_at; });
           saveSyncMeta(m);
+          Object.keys(sent).forEach(function(k){ noteSent(k, sent[k]); });
           pushing = false;
           // 合并进来了别的设备的数据 → 刷新界面（正在编辑时不动，免得清掉草稿）
           var note = "";
@@ -1969,34 +2047,35 @@
     var replace = opts && opts.replace;   // 首次启动时可选择直接采用云端版本
     return sb.from("app_data").select("key,value,updated_at").then(function(res){
       if(res.error) throw res.error;
-      var meta = loadSyncMeta(), changed = [], needPush = [], rowCount = 0;
+      var meta = loadSyncMeta(), changed = [], rowCount = 0;
       (res.data || []).forEach(function(row){
         if(SYNC_KEYS.indexOf(row.key) === -1) return;
         rowCount++;
         if(row.value === null || row.value === undefined) return;
+        var cloudStr = JSON.stringify(row.value);
+        noteSent(row.key, cloudStr);   // 基线 = 云端现在的内容
         var isNew = String(row.updated_at || "") > String(meta[row.key] || "");
-        if(replace) _lsSet(row.key, JSON.stringify(row.value));
-        else if(isNew){ if(mergeRemoteKey(row.key, row.value)) needPush.push(row.key); }
+        if(replace) _lsSet(row.key, cloudStr);
+        else if(isNew) mergeRemoteKey(row.key, row.value);
         else return;
         meta[row.key] = row.updated_at;
         changed.push(row.key);
       });
-      // 本机独有、云端还没有的键，也要补上去
-      SYNC_KEYS.forEach(function(k){
-        if(changed.indexOf(k) === -1 && _lsGet(k) && needPush.indexOf(k) === -1 &&
-           !(res.data || []).some(function(r){ return r.key === k; })) needPush.push(k);
-      });
       saveSyncMeta(meta);
-      return {rows: rowCount, changed: changed, needPush: needPush};
+      // 本机比云端多出来的东西，交给看门狗（syncWatchdog）自动补推
+      return {rows: rowCount, changed: changed};
     });
   }
 
   // 首次上云：把本地已有数据整体推上去
   function cloudPushAll(){
+    var sent = {};
     var rows = SYNC_KEYS.map(function(k){
       var raw = _lsGet(k);
       if(!raw) return null;
-      return {key:k, value: JSON.parse(raw), updated_at:new Date().toISOString()};
+      try { var v = JSON.parse(raw); sent[k] = raw;
+            return {key:k, value:v, updated_at:new Date().toISOString()}; }
+      catch(e){ return null; }
     }).filter(Boolean);
     if(!rows.length) return Promise.resolve();
     return sb.from("app_data").upsert(rows, {onConflict:"user_id,key"})
@@ -2005,6 +2084,7 @@
         var m = loadSyncMeta();
         (res.data || []).forEach(function(row){ m[row.key] = row.updated_at; });
         saveSyncMeta(m);
+        Object.keys(sent).forEach(function(k){ noteSent(k, sent[k]); });
       });
   }
 
@@ -2331,19 +2411,6 @@
   function saveClasses(list){
     localStorage.setItem(STORAGE_CLASSES, JSON.stringify(list));
   }
-  // 这几个班级属于 KET，不属于 KET/PET。
-  function migrateKetClassCurriculum(){
-    var ketNames = ["KET暑假班-1", "KET暑假班1V1", "KET暑假班-2", "KET暑假班-3"];
-    var changed = false;
-    classes.forEach(function(c){
-      if(ketNames.indexOf(c.name) !== -1 && c.curriculum === "KET/PET"){
-        c.curriculum = "KET";
-        changed = true;
-      }
-    });
-    if(changed) saveClasses(classes);
-    return changed;
-  }
   // 班级-学生关联表（多对多）：[{classId, studentId}]，不在学生表里写班级，避免冲突
   function loadClassStudents(){
     var raw = localStorage.getItem(STORAGE_CLASS_STUDENTS);
@@ -2470,11 +2537,7 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
-  // 日期按浏览器本地时区计算；toISOString() 是 UTC，在中国凌晨会落到前一天。
-  function todayStr(){
-    var d = new Date();
-    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-  }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
   function mostCommon(arr){
     var count = {}, best=null, bestN=0;
     arr.forEach(function(v){ if(!v) return; count[v]=(count[v]||0)+1; });
@@ -3347,6 +3410,7 @@
   }
 
   function loadOrCreateLog(){
+    flushLogDraft();   // 换班级 / 换日期前，先把上一节课的草稿存好
     var classId = document.getElementById("lessonClassSelect").value;
     var date = document.getElementById("lessonDate").value;
     var wsEl = document.getElementById("lessonWorkspace");
@@ -3812,11 +3876,17 @@
     saveRecords(classRecords);
   }
 
-  function handleSaveLesson(){
-    if(!curLog){ return; }
-    curLog.content = document.getElementById("lgContent").value;
-    curLog.classNotes = document.getElementById("lgClassNotes").value;
-    curLog.lessonNo = document.getElementById("lessonNoInput").value;
+  /* 把当前正在填的这节课真正写进 lessonLogs。
+     以前只有点「保存」按钮才会走到这里——填完直接切走或关页面，
+     内容就只在内存里，云端和备份文件都不会有它。所以现在自动保存。 */
+  function commitCurLog(){
+    if(!curLog) return 0;
+    var c = document.getElementById("lgContent");
+    var n1 = document.getElementById("lgClassNotes");
+    var n2 = document.getElementById("lessonNoInput");
+    if(c) curLog.content = c.value;
+    if(n1) curLog.classNotes = n1.value;
+    if(n2) curLog.lessonNo = n2.value;
     // 打时间戳：多设备改同一节课时，靠它判断谁的版本更新
     if(!curLog.createdAt) curLog.createdAt = new Date().toISOString();
     curLog.updatedAt = new Date().toISOString();
@@ -3826,13 +3896,63 @@
     if(idx !== -1) lessonLogs[idx] = curLog; else lessonLogs.push(curLog);
     saveLessonLogs(lessonLogs);
     syncLogToRecords(curLog);
+    logDirty = false;
+    return Object.keys(curLog.students || {}).length;
+  }
 
-    var n = Object.keys(curLog.students).length;
-    document.getElementById("lessonSaveHint").innerHTML =
-      "<span style='color:#16A37A;font-weight:600;'>✓ 已保存（"+n+" 名学生），已同步到课堂记录与成长报告</span>";
-    setTimeout(function(){
-      document.getElementById("lessonSaveHint").textContent = "登记内容会自动同步到课堂记录与成长报告";
-    }, 4000);
+  var logDirty = false;
+  var logAutosaveTimer = null;
+
+  function setLessonHint(html){
+    var el = document.getElementById("lessonSaveHint");
+    if(el) el.innerHTML = html;
+  }
+
+  // 面板里任何改动都排队自动保存，不再指望用户记得点按钮
+  function touchLog(){
+    if(!curLog) return;
+    logDirty = true;
+    setLessonHint("<span style='color:#B07C20;font-weight:600;'>● 未保存，正在自动保存…</span>");
+    clearTimeout(logAutosaveTimer);
+    logAutosaveTimer = setTimeout(autosaveLog, 1200);
+  }
+
+  // 空白登记别往库里塞：随手点一下就生成一条空记录、班级立刻显示「已登记」会很误导
+  function logHasContent(l){
+    if(!l) return false;
+    if((l.content || "").trim() || (l.classNotes || "").trim()) return true;
+    if((l.modules || []).length || (l.commonIssues || []).length) return true;
+    return Object.keys(l.students || {}).length > 0;
+  }
+
+  function autosaveLog(){
+    if(!curLog || !logDirty) return;
+    var known = lessonLogs.some(function(l){ return l.id === curLog.id; });
+    if(!known && !logHasContent(curLog)){
+      logDirty = false;
+      setLessonHint("边填边自动保存，也可以点左边的按钮手动存一次");
+      return;
+    }
+    var n = commitCurLog();
+    var t = new Date();
+    setLessonHint("<span style='color:#16A37A;font-weight:600;'>✓ 已自动保存 " +
+      String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0") +
+      "（" + n + " 名学生）</span>");
+    renderLessonStuList();
+  }
+
+  // 切走页面 / 关页面 / 切换模块前，把没落地的内容立刻存掉
+  function flushLogDraft(){
+    if(!curLog || !logDirty) return;
+    clearTimeout(logAutosaveTimer);
+    autosaveLog();
+  }
+
+  function handleSaveLesson(){
+    if(!curLog){ return; }
+    clearTimeout(logAutosaveTimer);
+    var n = commitCurLog();
+    setLessonHint("<span style='color:#16A37A;font-weight:600;'>✓ 已保存（"+n+" 名学生），已同步到课堂记录与成长报告</span>");
     renderLessonStuList();
   }
 
@@ -6363,6 +6483,131 @@
     }
   }
 
+  /* ================= 云端同步诊断 =================
+     跨设备对不上时，光看界面猜不出是哪一端的问题，
+     所以直接把本机和云端的条数、时间戳并排列出来。 */
+  var DIAG_LABELS = {
+    "esm_students_v1":"学生档案", "esm_classes_v1":"班级",
+    "esm_class_students_v1":"班级学员关系", "esm_lesson_logs_v1":"课堂登记",
+    "esm_courses_v1":"日历排课", "esm_todos_v1":"待办事项",
+    "esm_payoff_records_v1":"课酬结算", "esm_analyses_v1":"成长分析编辑",
+    "esm_parent_reports_v1":"家长报告", "esm_growth_archives_v1":"成长档案",
+    "esm_options_v1":"自定义选项", "esm_locations_v1":"上课地点",
+    "esm_ctemplates_v1":"课程模板"
+  };
+
+  function valCount(v){
+    if(Array.isArray(v)) return v.length;
+    if(v && typeof v === "object") return Object.keys(v).length;
+    return v == null ? 0 : 1;
+  }
+  function localCount(k){
+    var raw = _lsGet(k);
+    if(!raw) return 0;
+    try { return valCount(JSON.parse(raw)); } catch(e){ return 0; }
+  }
+  function shortTime(ts){
+    if(!ts) return "—";
+    var d = new Date(ts);
+    return isNaN(d.getTime()) ? "—" :
+      (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+
+  function runSyncDiag(){
+    var out = document.getElementById("diagOut");
+    if(!cloudReady || !sb){
+      out.innerHTML = "<div style='color:#D14545;font-weight:600;'>当前不是云端模式（左下角状态："+esc(syncState)+"），无法诊断。</div>";
+      return;
+    }
+    out.innerHTML = "<div class='hint'>正在读取云端…</div>";
+
+    Promise.all([
+      sb.auth.getUser(),
+      sb.from("app_data").select("key,value,updated_at")
+    ]).then(function(r){
+      var user = r[0] && r[0].data && r[0].data.user;
+      var res = r[1];
+      if(res.error) throw res.error;
+
+      var cloud = {};
+      (res.data || []).forEach(function(row){ cloud[row.key] = row; });
+      var meta = loadSyncMeta();
+
+      var rows = SYNC_KEYS.map(function(k){
+        var lc = localCount(k);
+        var row = cloud[k];
+        var cc = row ? valCount(row.value) : null;
+        var diff = (cc == null && lc > 0) || (cc != null && cc !== lc);
+        var tip = cc == null ? (lc ? "云端没有" : "两边都空")
+                : cc > lc ? "云端多 "+(cc-lc)+" 条"
+                : cc < lc ? "本机多 "+(lc-cc)+" 条" : "一致";
+        return "<tr style='"+(diff ? "background:#FFF6F6;" : "")+"'>" +
+          "<td style='padding:6px 10px;'>"+esc(DIAG_LABELS[k] || k)+"</td>" +
+          "<td style='padding:6px 10px;text-align:right;'>"+lc+"</td>" +
+          "<td style='padding:6px 10px;text-align:right;'>"+(cc == null ? "—" : cc)+"</td>" +
+          "<td style='padding:6px 10px;color:"+(diff ? "#D14545" : "#16A37A")+";font-weight:600;'>"+esc(tip)+"</td>" +
+          "<td style='padding:6px 10px;color:#64748B;'>"+esc(shortTime(row && row.updated_at))+"</td>" +
+          "<td style='padding:6px 10px;color:#64748B;'>"+esc(shortTime(meta[k]))+"</td>" +
+        "</tr>";
+      }).join("");
+
+      out.innerHTML =
+        "<div class='hint' style='margin-bottom:10px;'>登录账号：<b>"+esc((user && user.email) || "未知")+"</b>" +
+          "　·　云端共 "+((res.data||[]).length)+" 行数据</div>" +
+        "<div style='overflow:auto;'><table style='width:100%;border-collapse:collapse;font-size:13px;'>" +
+        "<thead><tr style='background:#F1F5F9;color:#334155;text-align:left;'>" +
+          "<th style='padding:8px 10px;'>数据块</th>" +
+          "<th style='padding:8px 10px;text-align:right;'>本机</th>" +
+          "<th style='padding:8px 10px;text-align:right;'>云端</th>" +
+          "<th style='padding:8px 10px;'>比对</th>" +
+          "<th style='padding:8px 10px;'>云端更新于</th>" +
+          "<th style='padding:8px 10px;'>本机水位线</th>" +
+        "</tr></thead><tbody>" + rows + "</tbody></table></div>";
+    }).catch(function(err){
+      out.innerHTML = "<div style='color:#D14545;font-weight:600;'>读取失败："+esc((err && err.message) || String(err))+"</div>";
+    });
+  }
+
+  function forcePullFromCloud(){
+    if(!cloudReady || !sb){ alert("当前不是云端模式，无法拉取。"); return; }
+    askConfirm({
+      title:"用云端覆盖本机",
+      msg:"将<b>丢弃这台设备上的本地数据</b>，完全采用云端版本。",
+      sub:"适用于：这台设备的数据是旧的 / 出过错，云端才是正确的那份。建议先导出一次备份。",
+      okText:"确认，用云端覆盖",
+      onOk:function(){
+        setSyncState("syncing");
+        cloudPull({replace:true}).then(function(){
+          reloadAllFromStorage();
+          renderBackupPage();
+          setSyncState("synced", "已用云端数据覆盖本机");
+          runSyncDiag();
+        }).catch(function(err){
+          setSyncState("error", (err && err.message) || "拉取失败");
+        });
+      }
+    });
+  }
+
+  function forcePushToCloud(){
+    if(!cloudReady || !sb){ alert("当前不是云端模式，无法上传。"); return; }
+    askConfirm({
+      title:"用本机覆盖云端",
+      msg:"将<b>丢弃云端数据</b>，完全采用这台设备上的版本。",
+      sub:"适用于：这台设备的数据是最全的。注意——其他设备上还没上传的内容会被抹掉。",
+      okText:"确认，用本机覆盖",
+      onOk:function(){
+        setSyncState("syncing");
+        cloudPushAll().then(function(){
+          setSyncState("synced", "已用本机数据覆盖云端");
+          runSyncDiag();
+        }).catch(function(err){
+          setSyncState("error", (err && err.message) || "上传失败");
+        });
+      }
+    });
+  }
+
   function buildBackupPayload(){
     return {
       version: 1,
@@ -6552,23 +6797,13 @@
 
         anData = null; curLog = null; detailClassId = null;
         renderTable();
+        renderHome();
         renderBackupPage();
-        function finishImport(cloudSaved){
-          if(cloudSaved){
-            setSyncState("synced", "导入数据已保存到云端");
-          } else if(cloudReady){
-            setSyncState("error", "导入数据已保存在本机，但云端上传未完成，请点击同步重试");
-          }
-          alert("导入完成！\n当前共有 " + students.length + " 名学生、" + classes.length + " 个班级、" +
-                lessonLogs.length + " 节课堂登记、" + courses.length + " 节排课课程。" +
-                (cloudSaved ? "\n已确认保存到云端。" : cloudReady ? "\n云端上传尚未完成，请稍后点击“同步”。" : ""));
-        }
-        if(cloudReady){
-          setSyncState("syncing", "正在保存导入数据到云端…");
-          flushAndWait(finishImport);
-        } else {
-          finishImport(false);
-        }
+        // 重画当前正在看的那一栏，否则导入完页面上看不出任何变化
+        var curNav = document.querySelector(".nav-item.active");
+        if(curNav) switchView(curNav.getAttribute("data-view"));
+        alert("导入完成！\n当前共有 " + students.length + " 名学生、" + classes.length + " 个班级、" +
+              lessonLogs.length + " 节课堂登记、" + courses.length + " 节排课课程。");
         }
       }catch(err){
         alert("导入失败：文件格式不正确。\n请确认选择的是本系统导出的 JSON 备份文件。");
@@ -7059,6 +7294,7 @@
   // ================= 视图切换 =================
 
   function switchView(view){
+    flushLogDraft();   // 离开课堂登记前先把草稿落地
     document.querySelectorAll(".nav-item").forEach(function(item){
       item.classList.toggle("active", item.getAttribute("data-view") === view);
     });
@@ -7347,6 +7583,9 @@
   document.getElementById("btnExport").addEventListener("click", handleExportBackup);
   document.getElementById("importFile").addEventListener("change", handleImportBackup);
   document.getElementById("btnClearAll").addEventListener("click", handleClearAll);
+  document.getElementById("btnDiag").addEventListener("click", runSyncDiag);
+  document.getElementById("btnForcePull").addEventListener("click", forcePullFromCloud);
+  document.getElementById("btnForcePush").addEventListener("click", forcePushToCloud);
 
   // 班级管理
   document.getElementById("btnAddClass").addEventListener("click", function(){ openClassModal(null); });
@@ -7426,11 +7665,29 @@
   });
   // 返回班级卡片列表
   document.getElementById("btnBackToClassPick").addEventListener("click", function(){
+    flushLogDraft();
     document.getElementById("lessonClassSelect").value = "";
     curLog = null; curStuId = null;
     loadOrCreateLog();
   });
   document.getElementById("btnSaveLesson").addEventListener("click", handleSaveLesson);
+
+  /* 自动保存的总开关：在整个登记面板上挂一层监听，
+     不管是哪个具体控件、哪个 handler 改了 curLog，都会被这里捕捉到。
+     比逐个 handler 里加保存调用可靠得多。 */
+  (function wireLessonAutosave(){
+    var ws = document.getElementById("lessonWorkspace");
+    if(!ws) return;
+    ["input","change"].forEach(function(ev){
+      ws.addEventListener(ev, function(){ touchLog(); });
+    });
+    // 标签、评级这类是点击操作，不会触发 input 事件
+    ws.addEventListener("click", function(e){
+      if(e.target.closest("#btnSaveLesson")) return;
+      setTimeout(touchLog, 0);   // 等原有 handler 先改完 curLog
+    });
+    ws.addEventListener("focusout", function(){ flushLogDraft(); });
+  })();
 
   // 班级整体面板交互
   document.getElementById("lgModulePicker").addEventListener("click", function(e){
@@ -7680,7 +7937,6 @@
     cTemplates      = loadTemplates();
     payoffRecords   = loadPayoffRecords();
     todos           = loadTodos();
-    migrateKetClassCurriculum();
 
     // 课堂记录是从登记数据推导出来的，重建一遍保证一致
     classRecords = [];
@@ -7689,15 +7945,18 @@
     // 清掉可能已失效的界面临时状态
     anData = null; curLog = null; curStuId = null; detailClassId = null;
 
-    renderTable();
     renderHome();
+    // 重画当前正在看的那一栏——只刷新学生表和首页的话，
+    // 站在「课堂登记」「日历排课」页面点同步会看不到任何变化
+    var cur = document.querySelector(".nav-item.active");
+    var view = cur ? cur.getAttribute("data-view") : "students";
+    switchView(view);
   }
 
   /* =====================================================================
      启动流程：没配云端就纯本地跑；配了就先登录再拉数据
      ===================================================================== */
   function startApp(){
-    migrateKetClassCurriculum();
     renderTable();
     renderHome();
   }
@@ -7760,18 +8019,13 @@
             // 云端还是空的：把本机现有数据整体上传一次
             return cloudPushAll().then(function(){ setSyncState("synced", "已把本机数据上传到云端"); });
           }
-          // 本机有云端缺的记录（比如上次没推成功）→ 立刻补推，别让它烂在本地
-          if(r.needPush.length){
-            r.needPush.forEach(function(k){ pendingKeys[k] = true; });
-            schedulePush(400);
-            setSyncState("syncing", "正在补传本机独有的数据");
-            return;
-          }
           setSyncState("synced");
         })
         .then(function(){
           hideGate();
           reloadAllFromStorage();
+          startWatchdog();   // 之后本机若有云端缺的内容，5 秒内自动补传
+          syncWatchdog();
         })
         .catch(function(err){
           cloudReady = false;
@@ -7866,7 +8120,8 @@
 
       wait.then(cloudPull).then(function(r){
         reloadAllFromStorage();
-        if(queueNeedPush(r)){ setSyncState("syncing", "正在补传本机独有的数据"); return; }
+        syncWatchdog();
+        if(Object.keys(pendingKeys).length){ setSyncState("syncing", "正在补传本机独有的数据"); return; }
         setSyncState("synced", r.changed.length ? ("已同步，更新了 "+r.changed.length+" 项") : "已是最新");
       }).catch(function(err){
         setSyncState("error", (err && err.message) || "同步失败");
@@ -7881,30 +8136,13 @@
      所以页面一转入后台就立刻把待推数据发出去；回到前台再拉一次云端。
      --------------------------------------------------------------------- */
   function flushNow(){
-    if(cloudReady && Object.keys(pendingKeys).length){
+    flushLogDraft();   // 先把课堂登记的草稿落地，再考虑上传
+    if(!cloudReady) return;
+    syncWatchdog();   // 先扫一遍有没有漏掉的改动
+    if(Object.keys(pendingKeys).length){
       clearTimeout(pushTimer);
       flushPush();
     }
-  }
-
-  // 导入备份后必须等云端写入完成，避免 iPad 刷新或切后台时丢掉刚导入的数据。
-  function flushAndWait(onDone){
-    if(!cloudReady){ if(onDone) onDone(false); return; }
-    clearTimeout(pushTimer);
-    var started = Date.now();
-    function check(){
-      if(!pushing && Object.keys(pendingKeys).length) flushPush();
-      if(!pushing && !Object.keys(pendingKeys).length){
-        if(onDone) onDone(true);
-        return;
-      }
-      if(Date.now() - started >= 12000){
-        if(onDone) onDone(false);
-        return;
-      }
-      setTimeout(check, 150);
-    }
-    check();
   }
 
   // 有没有正在编辑、还没保存的东西？有就别自动重载，免得清掉草稿
@@ -7913,18 +8151,10 @@
     return !!document.querySelector(".modal-overlay.open");        // 有弹窗在填
   }
 
-  // 拉取时发现本机有云端缺的记录 → 排队补推
-  function queueNeedPush(r){
-    if(!r || !r.needPush || !r.needPush.length) return false;
-    r.needPush.forEach(function(k){ pendingKeys[k] = true; });
-    schedulePush(400);
-    return true;
-  }
-
   function pullOnReturn(){
     if(!cloudReady) return;
     cloudPull().then(function(r){
-      queueNeedPush(r);
+      syncWatchdog();   // 本机多出来的内容顺手补推
       if(!r.changed.length){ if(!Object.keys(pendingKeys).length) setSyncState("synced"); return; }
       if(hasUnsavedDraft()){
         setSyncState("synced", "其他设备有新数据，保存当前内容后点「同步」即可看到");
