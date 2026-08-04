@@ -2331,6 +2331,19 @@
   function saveClasses(list){
     localStorage.setItem(STORAGE_CLASSES, JSON.stringify(list));
   }
+  // 这几个班级属于 KET，不属于 KET/PET。
+  function migrateKetClassCurriculum(){
+    var ketNames = ["KET暑假班-1", "KET暑假班1V1", "KET暑假班-2", "KET暑假班-3"];
+    var changed = false;
+    classes.forEach(function(c){
+      if(ketNames.indexOf(c.name) !== -1 && c.curriculum === "KET/PET"){
+        c.curriculum = "KET";
+        changed = true;
+      }
+    });
+    if(changed) saveClasses(classes);
+    return changed;
+  }
   // 班级-学生关联表（多对多）：[{classId, studentId}]，不在学生表里写班级，避免冲突
   function loadClassStudents(){
     var raw = localStorage.getItem(STORAGE_CLASS_STUDENTS);
@@ -7667,6 +7680,7 @@
     cTemplates      = loadTemplates();
     payoffRecords   = loadPayoffRecords();
     todos           = loadTodos();
+    migrateKetClassCurriculum();
 
     // 课堂记录是从登记数据推导出来的，重建一遍保证一致
     classRecords = [];
@@ -7683,6 +7697,7 @@
      启动流程：没配云端就纯本地跑；配了就先登录再拉数据
      ===================================================================== */
   function startApp(){
+    migrateKetClassCurriculum();
     renderTable();
     renderHome();
   }
