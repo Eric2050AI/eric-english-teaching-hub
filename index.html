@@ -60,7 +60,7 @@
 
   /* Sidebar —— 浅色 */
   .sidebar{
-    width:206px;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0 16px;
+    width:190px;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0 16px;
     background:var(--sidebar);border-right:1px solid var(--border);color:var(--muted);
   }
   .sidebar .logo{
@@ -549,11 +549,11 @@
   .cal-nav button:hover{background:#F1F5F9;border-color:#CBD5E1;}
   .cal-title{font-size:18px;font-weight:700;margin-left:8px;min-width:130px;letter-spacing:-.2px;}
   .cal-grid{
-    display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);
+    display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--border);
     border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--sh-sm);
   }
   .cal-wd{background:#F9FBFD;text-align:center;padding:11px 0;font-size:12.5px;color:var(--muted);font-weight:600;}
-  .cal-cell{background:#fff;min-height:116px;padding:7px 7px 9px;cursor:pointer;position:relative;transition:background .14s;}
+  .cal-cell{background:#fff;min-width:0;min-height:116px;padding:7px 7px 9px;cursor:pointer;position:relative;transition:background .14s;}
   .cal-cell:hover{background:#FBFCFE;}
   .cal-cell.other{background:#FAFBFC;}
   .cal-cell.other .cal-dnum{color:#C3CCD8;}
@@ -565,13 +565,13 @@
     padding:3px 5px 3px 6px;border-left:3px solid var(--primary);border-radius:5px;margin-bottom:3px;
     background:var(--primary-light);overflow:hidden;white-space:nowrap;
     transition:transform .12s,box-shadow .12s;
-    height:var(--slot-h);box-sizing:border-box;
+    height:var(--slot-h);min-width:0;box-sizing:border-box;
   }
   /* 空占位：与课程条等高，用于让相同时间的课横向对齐 */
   .cal-slot-empty{height:var(--slot-h);margin-bottom:3px;}
   .cal-course:hover{transform:translateX(1px);box-shadow:var(--sh-xs);}
   .cal-course .tm{font-weight:700;flex-shrink:0;}
-  .cal-course .nm{overflow:hidden;text-overflow:ellipsis;}
+  .cal-course .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;}
   .cal-course .st{flex-shrink:0;font-size:10px;padding:0 5px;border-radius:6px;font-weight:700;}
   .cs-completed{background:var(--success-light);border-color:#A9DECE !important;color:#0E8A66;}
   .cs-leave{background:var(--accent-light);border-color:#F2DCAE !important;color:#B07C20;}
