@@ -3045,6 +3045,8 @@
     rosterClassId = classId;
     var cls = classes.find(function(c){ return c.id === classId; });
     if(!cls) return;
+    // 批量升年级可能在另一个页面或标签页完成，打开名单前重新读取最新学生档案。
+    students = loadStudents();
     var inClass = getClassStudentIds(classId);
     document.getElementById("rosterModalTitle").textContent = "管理班级学员 - " + (cls.name||"");
 
@@ -3102,6 +3104,7 @@
   // --- 班级详情页 ---
   function showClassList(){
     detailClassId = null;
+    students = loadStudents();
     document.getElementById("classListMode").style.display = "block";
     document.getElementById("classDetailMode").style.display = "none";
     populateClassFilters();
@@ -3115,6 +3118,7 @@
   }
 
   function renderClassDetail(){
+    students = loadStudents();
     var cls = classes.find(function(c){ return c.id === detailClassId; });
     if(!cls){ showClassList(); return; }
     document.getElementById("classDetailTitle").textContent = cls.name || "班级详情";
