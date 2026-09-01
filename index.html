@@ -4710,6 +4710,97 @@
     });
   }
 
+  // 备份之间的同一节课可能使用了不同 ID，标题也可能只差短横线或空格。
+  // 合并导入时按“日期 + 起止时间 + 规范化标题”识别，避免同一节课出现两条。
+  function normalizeCourseTitle(title){
+    return String(title || "").toLowerCase().replace(/[\s\-_—–·•|｜]+/g, "");
+  }
+  function courseMergeKey(c){
+    return [c.date || "", c.startTime || "", c.endTime || "", normalizeCourseTitle(c.title)].join("|");
+  }
+  function courseStatusRank(status){
+    return {completed:4, cancelled:3, leave:3, makeup:2, scheduled:1}[status] || 0;
+  }
+  function courseDataScore(c){
+    return Object.keys(c.attendance || {}).length * 10 +
+      (c.classId ? 4 : 0) + (c.completedAt ? 2 : 0) +
+      ((c.studentIds || []).length ? 1 : 0) + (c.notes ? 1 : 0);
+  }
+  function mergeCourseRecords(current, incoming){
+    var winner = courseDataScore(incoming) >= courseDataScore(current) ? incoming : current;
+    var merged = JSON.parse(JSON.stringify(winner));
+    var attendance = {};
+    Object.keys(current.attendance || {}).forEach(function(sid){ attendance[sid] = current.attendance[sid]; });
+    Object.keys(incoming.attendance || {}).forEach(function(sid){ attendance[sid] = incoming.attendance[sid]; });
+    if(Object.keys(attendance).length) merged.attendance = attendance;
+    if(!merged.classId && current.classId) merged.classId = current.classId;
+    if(!(merged.studentIds || []).length && (current.studentIds || []).length) merged.studentIds = current.studentIds.slice();
+    return merged;
+  }
+  function mergeCourses(existing, incoming){
+    var out = [];
+    function add(course, fromBackup){
+      var key = courseMergeKey(course);
+      var found = -1;
+      for(var i=0;i<out.length;i++){
+        if(courseMergeKey(out[i]) !== key) continue;
+        // 两条记录都明确属于不同班级时，不合并，避免误删真正的同一时段课程。
+        if(out[i].classId && course.classId && out[i].classId !== course.classId) continue;
+        found = i;
+        break;
+      }
+      if(found === -1){ out.push(course); return; }
+      var current = out[found];
+      var currentRank = courseStatusRank(current.status);
+      var nextRank = courseStatusRank(course.status);
+      // 已完成优先；状态相同时以本次导入的备份为准，保留最新备份内容。
+      if(nextRank > currentRank) out[found] = course;
+      else if(nextRank === currentRank) out[found] = mergeCourseRecords(current, course);
+    }
+    existing.forEach(function(c){ add(c, false); });
+    incoming.forEach(function(c){ add(c, true); });
+    return out;
+  }
+
+  // 旧版排课备份可能把“暑假班”当成一个临时学生，课程本身没有 classId。
+  // 启动或导入时把它重新挂回当前班级，避免课程卡片显示“已删除”。
+  function legacyClassTitleKey(text){
+    return normalizeCourseTitle(String(text || "").replace(/[（(][^）)]*[）)]/g, ""))
+      .replace(/外研版|暑假班|寒假班|春季班|秋季班|夏令营|冬令营/g, "");
+  }
+  function repairLegacyCourseLinks(){
+    var changed = false;
+    courses.forEach(function(c){
+      if(c.classId || !c.title) return;
+      var key = legacyClassTitleKey(c.title);
+      if(!key) return;
+      var matches = classes.filter(function(cls){ return legacyClassTitleKey(cls.name) === key; });
+      if(matches.length !== 1) return;
+      var cls = matches[0];
+      var rosterIds = getClassStudentIds(cls.id);
+      if(!rosterIds.length) return;
+
+      c.classId = cls.id;
+      var oldIds = (c.studentIds || []).slice();
+      var placeholderOnly = !oldIds.length || oldIds.every(function(sid){
+        var oldStudent = students.find(function(s){ return s.id === sid; });
+        return !oldStudent || (c.studentOrClass && oldStudent.name === c.studentOrClass);
+      });
+      if(placeholderOnly){
+        var oldAttendance = c.attendance || {};
+        var oldStatus = oldIds.length === 1 ? oldAttendance[oldIds[0]] : "";
+        c.studentIds = rosterIds.slice();
+        c.attendance = {};
+        if(oldStatus){
+          rosterIds.forEach(function(sid){ c.attendance[sid] = oldStatus; });
+        }
+      }
+      c.updatedAt = new Date().toISOString();
+      changed = true;
+    });
+    return changed;
+  }
+
   // ---- 月视图 ----
   function renderMonth(){
     var y = calCursor.getFullYear(), m = calCursor.getMonth();
@@ -6668,18 +6759,21 @@
     reader.onload = function(){
       try{
         var payload = JSON.parse(reader.result);
-        var inStudents = Array.isArray(payload) ? payload : (payload.students || []);
-        var inClasses  = Array.isArray(payload) ? [] : (payload.classes || []);
-        var inCS       = Array.isArray(payload) ? [] : (payload.classStudents || []);
-        var inLogs     = Array.isArray(payload) ? [] : (payload.lessonLogs || []);
-        var inAnalyses = Array.isArray(payload) ? {} : (payload.analyses || {});
-        var inParentReports = Array.isArray(payload) ? [] : (payload.parentReports || []);
-        var inGrowthArchives = Array.isArray(payload) ? {} : (payload.growthArchives || {});
-        var inCourses  = Array.isArray(payload) ? [] : (payload.courses || []);
-        var inLocs     = Array.isArray(payload) ? [] : (payload.locations || []);
-        var inTpls     = Array.isArray(payload) ? [] : (payload.cTemplates || []);
-        var inPayoffs  = Array.isArray(payload) ? [] : (payload.payoffRecords || []);
-        var inTodos    = Array.isArray(payload) ? [] : (payload.todos || []);
+        // 兼容当前格式，以及旧版把完整数据放在 data 里的备份格式。
+        var isLegacyArray = Array.isArray(payload);
+        var source = (!isLegacyArray && payload.data && typeof payload.data === "object") ? payload.data : payload;
+        var inStudents = isLegacyArray ? payload : (source.students || []);
+        var inClasses  = isLegacyArray ? [] : (source.classes || []);
+        var inCS       = isLegacyArray ? [] : (source.classStudents || []);
+        var inLogs     = isLegacyArray ? [] : (source.lessonLogs || []);
+        var inAnalyses = isLegacyArray ? {} : (source.analyses || {});
+        var inParentReports = isLegacyArray ? [] : (source.parentReports || []);
+        var inGrowthArchives = isLegacyArray ? {} : (source.growthArchives || {});
+        var inCourses  = isLegacyArray ? [] : (source.courses || []);
+        var inLocs     = isLegacyArray ? [] : (source.locations || []);
+        var inTpls     = isLegacyArray ? [] : (source.cTemplates || source.templates || []);
+        var inPayoffs  = isLegacyArray ? [] : (source.payoffRecords || []);
+        var inTodos    = isLegacyArray ? [] : (source.todos || []);
         inTodos.forEach(function(t){ if(!t.id) t.id = uid(); });
 
         inStudents.forEach(function(s){ if(!s.id) s.id = uid(); });
@@ -6751,9 +6845,7 @@
           parentReports = Object.keys(prMap).map(function(k){ return prMap[k]; });
           Object.keys(inGrowthArchives).forEach(function(sid){ growthArchives[sid] = inGrowthArchives[sid]; });
 
-          var coMap = {}; courses.forEach(function(c){ coMap[c.id] = c; });
-          inCourses.forEach(function(c){ coMap[c.id] = c; });
-          courses = Object.keys(coMap).map(function(k){ return coMap[k]; });
+          courses = mergeCourses(courses, inCourses);
 
           var poMap = {}; payoffRecords.forEach(function(r){ poMap[r.id] = r; });
           inPayoffs.forEach(function(r){ poMap[r.id] = r; });
@@ -6784,10 +6876,13 @@
           cTemplates = inTpls;
         }
 
-        if(payload.options){
-          Object.keys(payload.options).forEach(function(k){
+        // 旧版课程被重新绑定到当前班级和真实学生后，再写入本机数据。
+        repairLegacyCourseLinks();
+
+        if(source.options){
+          Object.keys(source.options).forEach(function(k){
             options[k] = options[k] || [];
-            (payload.options[k]||[]).forEach(function(v){ if(options[k].indexOf(v) === -1) options[k].push(v); });
+            (source.options[k]||[]).forEach(function(v){ if(options[k].indexOf(v) === -1) options[k].push(v); });
           });
           saveOptions(stripSeeds());
         }
@@ -7978,6 +8073,7 @@
     parentReports   = loadParentReports();
     growthArchives  = loadGrowthArchives();
     courses         = loadCourses();
+    if(repairLegacyCourseLinks()) saveCourses(courses);
     locations       = loadLocations();
     cTemplates      = loadTemplates();
     payoffRecords   = loadPayoffRecords();
@@ -8002,6 +8098,7 @@
      启动流程：没配云端就纯本地跑；配了就先登录再拉数据
      ===================================================================== */
   function startApp(){
+    if(repairLegacyCourseLinks()) saveCourses(courses);
     renderTable();
     renderHome();
   }
