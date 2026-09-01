@@ -171,6 +171,16 @@
     background:#F8FAFC;border:1px solid var(--border);border-radius:var(--r-sm);
     padding:11px 14px;font-size:13px;line-height:1.9;margin-top:12px;max-height:200px;overflow-y:auto;
   }
+  .promote-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid var(--border-soft);}
+  .promote-toolbar label{display:inline-flex;align-items:center;gap:7px;color:var(--text);font-weight:600;cursor:pointer;}
+  .promote-toolbar input,.promote-student-row input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+  .promote-count{color:var(--muted);font-size:12px;white-space:nowrap;}
+  .promote-student-list{display:grid;gap:5px;}
+  .promote-student-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border:1px solid transparent;border-radius:7px;cursor:pointer;}
+  .promote-student-row:hover{background:#fff;border-color:var(--border);}
+  .promote-student-info{display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0;flex:1;}
+  .promote-student-info strong{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .promote-student-info span{color:var(--muted);font-size:12px;white-space:nowrap;}
   .btn-sm{padding:6px 11px;font-size:12px;border-radius:7px;font-weight:600;}
 
   .card{
@@ -7367,29 +7377,60 @@
       alert("没有可以升级的学生。\n（九年级学生和自定义年级不会被自动升级，请手动修改。）");
       return;
     }
+    var studentRows = willChange.map(function(s){
+      var i = GRADE_ORDER.indexOf(s.grade);
+      return "<label class='promote-student-row'>" +
+        "<input type='checkbox' class='promote-student-check' value='"+esc(s.id)+"' checked>" +
+        "<span class='promote-student-info'><strong>"+esc(s.name||"未命名")+"</strong>" +
+        "<span>"+esc(s.grade)+" → <b>"+esc(GRADE_ORDER[i+1])+"</b></span></span></label>";
+    }).join("");
     askConfirm({
       title:"批量升年级",
-      msg:"将把以下 <b>"+willChange.length+"</b> 名学生的年级各升一级：",
-      list: willChange.slice(0,15).map(function(s){
-              var i = GRADE_ORDER.indexOf(s.grade);
-              return "· "+esc(s.name||"未命名")+"："+esc(s.grade)+" → <b>"+esc(GRADE_ORDER[i+1])+"</b>";
-            }).join("<br>") +
-            (willChange.length > 15 ? "<br>… 等共 "+willChange.length+" 名" : ""),
+      msg:"请勾选需要升年级的学生（默认全选）：",
+      list:"<div class='promote-toolbar'><label><input type='checkbox' id='promoteSelectAll' checked> 全选</label><span class='promote-count' id='promoteSelectedCount'>已选 "+willChange.length+" 人</span></div>"+
+           "<div class='promote-student-list'>"+studentRows+"</div>",
       sub: (graduating.length ? "九年级学生 "+graduating.length+" 名将保持不变（已是最高年级）。" : "") +
            (unknown.length ? "<br>自定义年级学生 "+unknown.length+" 名不会自动升级，请手动修改。" : ""),
       warn:"建议操作前先到「数据备份」导出一次。",
       okText:"确认升年级",
       primary:true,
       onOk:function(){
+        var selectedIds = {};
+        document.querySelectorAll(".promote-student-check:checked").forEach(function(input){
+          selectedIds[input.value] = true;
+        });
+        if(Object.keys(selectedIds).length === 0){
+          alert("请至少选择 1 名学生。");
+          return;
+        }
+        var updated = 0;
         students.forEach(function(s){
           var i = GRADE_ORDER.indexOf(s.grade);
-          if(i !== -1 && i < GRADE_ORDER.length - 1) s.grade = GRADE_ORDER[i+1];
+          if(selectedIds[s.id] && i !== -1 && i < GRADE_ORDER.length - 1){
+            s.grade = GRADE_ORDER[i+1];
+            updated += 1;
+          }
         });
         saveStudents(students);
         renderTable();
-        alert("已完成升年级，共更新 " + willChange.length + " 名学生。");
+        alert("已完成升年级，共更新 " + updated + " 名学生。");
       }
     });
+
+    var selectAll = document.getElementById("promoteSelectAll");
+    var checks = Array.prototype.slice.call(document.querySelectorAll(".promote-student-check"));
+    var selectedCount = document.getElementById("promoteSelectedCount");
+    function syncPromotionSelection(){
+      var count = checks.filter(function(input){ return input.checked; }).length;
+      selectedCount.textContent = "已选 " + count + " 人";
+      selectAll.checked = count === checks.length;
+      selectAll.indeterminate = count > 0 && count < checks.length;
+    }
+    selectAll.addEventListener("change", function(){
+      checks.forEach(function(input){ input.checked = selectAll.checked; });
+      syncPromotionSelection();
+    });
+    checks.forEach(function(input){ input.addEventListener("change", syncPromotionSelection); });
   });
 
   // 今日工作台
