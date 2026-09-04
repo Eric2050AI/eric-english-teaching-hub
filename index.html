@@ -2923,6 +2923,32 @@
     saveClassStudents(classStudents);
   }
 
+  // 班级改名后，同步更新日历中已排的课程名称。
+  // 新版课程通过 classId 关联；旧版课程没有 classId 时，按原班级名称兼容匹配。
+  function syncClassNameToCourses(classId, oldName, newName){
+    if(typeof courses === "undefined" || !Array.isArray(courses) || !oldName || oldName === newName) return false;
+    var changed = false;
+    courses.forEach(function(course){
+      var linked = course.classId === classId || (!course.classId && course.title === oldName);
+      if(!linked) return;
+      var courseChanged = false;
+      if(course.title !== newName){
+        course.title = newName;
+        courseChanged = true;
+      }
+      if(course.makeupForCourseTitleSnapshot === oldName){
+        course.makeupForCourseTitleSnapshot = newName;
+        courseChanged = true;
+      }
+      if(courseChanged){
+        course.updatedAt = new Date().toISOString();
+        changed = true;
+      }
+    });
+    if(changed) saveCourses(courses);
+    return changed;
+  }
+
   function populateClassFilters(){
     function fill(id, optKey, allLabel){
       var el = document.getElementById(id);
@@ -3009,6 +3035,7 @@
     if(!data.name || !data.name.trim()){ alert("请填写班级名称"); return; }
     if(classEditingId){
       classes = classes.map(function(c){ return c.id === classEditingId ? data : c; });
+      syncClassNameToCourses(classEditingId, existing && existing.name, data.name);
     } else {
       classes.push(data);
     }
@@ -4801,6 +4828,23 @@
     return changed;
   }
 
+  // 云端拉取或旧数据迁移后，再用班级表的名称校正已关联课程。
+  // 这样即使班级名称是在其他设备上修改的，日历也不会继续显示旧名称。
+  function syncCourseTitlesFromClasses(){
+    if(typeof courses === "undefined" || !Array.isArray(courses)) return false;
+    var changed = false;
+    courses.forEach(function(course){
+      if(!course.classId) return;
+      var cls = classes.find(function(item){ return item.id === course.classId; });
+      if(!cls || !cls.name || course.title === cls.name) return;
+      course.title = cls.name;
+      course.updatedAt = new Date().toISOString();
+      changed = true;
+    });
+    if(changed) saveCourses(courses);
+    return changed;
+  }
+
   // ---- 月视图 ----
   function renderMonth(){
     var y = calCursor.getFullYear(), m = calCursor.getMonth();
@@ -6391,16 +6435,18 @@
     var completed = list.filter(function(c){ return c.status === "completed"; });
     var upcoming = list.filter(function(c){ return c.status === "scheduled" || c.status === "makeup"; });
     var cancelled = list.filter(function(c){ return c.status === "cancelled" || c.status === "leave"; });
-    var eligible = completed.filter(function(c){ return !payrollNoPay(c); });
+    // 预计课酬按排课计算：已完成 + 待上课都计入，取消/请假/不计酬课程排除。
+    var eligible = completed.concat(upcoming).filter(function(c){ return !payrollNoPay(c); });
     var expected = eligible.reduce(function(n,c){ return n + payrollPay(c); }, 0);
-    var settled = eligible.filter(function(c){ return c.settlementStatus === "paid"; }).reduce(function(n,c){
+    // 已结算收入仍只统计已完成且已结算的课程，避免把未来排课误算到账。
+    var settled = completed.filter(function(c){ return !payrollNoPay(c) && c.settlementStatus === "paid"; }).reduce(function(n,c){
       return n + (c.settledAmount !== null && c.settledAmount !== undefined ? Number(c.settledAmount) : payrollPay(c));
     }, 0);
     var byFormat = {"一对一":{count:0,total:0},"小班课":{count:0,total:0},"大班课":{count:0,total:0}};
     eligible.forEach(function(c){ var k=payrollFormatOf(c); byFormat[k].count++; byFormat[k].total += payrollPay(c); });
     var today = todayStr();
     var globalUpcoming = courses.filter(function(c){ return (c.status === "scheduled" || c.status === "makeup") && c.date >= today; }).length;
-    return {completed:completed,upcoming:upcoming,cancelled:cancelled,eligible:eligible,expected:payrollRound(expected),settled:payrollRound(settled),pending:payrollRound(Math.max(0,expected-settled)),noPay:completed.filter(payrollNoPay).length,globalUpcoming:globalUpcoming,byFormat:byFormat};
+    return {completed:completed,upcoming:upcoming,cancelled:cancelled,eligible:eligible,expected:payrollRound(expected),settled:payrollRound(settled),pending:payrollRound(Math.max(0,expected-settled)),noPay:list.filter(payrollNoPay).length,globalUpcoming:globalUpcoming,byFormat:byFormat};
   }
   function payrollRangeText(){ return (dv("payrollStart") || "") + " 至 " + (dv("payrollEnd") || ""); }
   function populatePayrollPerson(){
@@ -6457,16 +6503,16 @@
     notice.innerHTML = "还没有排课数据，请先到「日历排课」新增课程。课酬统计会自动复用已保存的排课记录。";
     document.getElementById("payrollSummary").innerHTML =
       "<div class='payroll-card'><div class='v'>"+stats.completed.length+" 节</div><div class='k'>周期已上课时</div><div class='meta'>"+payrollRangeText()+"</div></div>"+
-      "<div class='payroll-card warning'><div class='v'>"+stats.upcoming.length+" 节</div><div class='k'>周期待上课时</div><div class='meta'>不计入应计课酬</div></div>"+
-      "<div class='payroll-card success'><div class='v'>"+money(stats.expected)+"</div><div class='k'>周期预计课酬</div><div class='meta'>已完成且计酬的课程</div></div>"+
+      "<div class='payroll-card warning'><div class='v'>"+stats.upcoming.length+" 节</div><div class='k'>周期待上课时</div><div class='meta'>按排课计入预计课酬</div></div>"+
+      "<div class='payroll-card success'><div class='v'>"+money(stats.expected)+"</div><div class='k'>周期预计课酬</div><div class='meta'>已完成 + 已排课（不含取消 / 不计酬）</div></div>"+
       "<div class='payroll-card danger'><div class='v'>"+money(stats.pending)+"</div><div class='k'>待结算课酬</div><div class='meta'>预计课酬 − 已结算收入</div></div>";
     document.getElementById("payrollSecondary").innerHTML =
       "<div class='payroll-mini'><span class='k'>周期已取消 / 请假</span><span class='v'>"+stats.cancelled.length+" 节</span></div>"+
       "<div class='payroll-mini'><span class='k'>已结算收入</span><span class='v' style='color:var(--success);'>"+money(stats.settled)+"</span></div>"+
       "<div class='payroll-mini'><span class='k'>全局剩余待上课时</span><span class='v'>"+stats.globalUpcoming+" 节</span></div>"+
       "<div class='payroll-mini'><span class='k'>周期不计酬课时</span><span class='v' style='color:var(--muted);'>"+stats.noPay+" 节</span></div>";
-    document.getElementById("payrollBreakdown").innerHTML = ["一对一","小班课","大班课"].map(function(k){ return "<div class='payroll-breakdown-card'><div class='name'>"+k+" · 已完成</div><div class='money'>"+money(stats.byFormat[k].total)+"</div><div class='count'>"+stats.byFormat[k].count+" 节</div></div>"; }).join("");
-    document.getElementById("payrollResultHint").textContent = "共 "+list.length+" 条排课记录 · 收入仅统计已完成且计酬课程";
+    document.getElementById("payrollBreakdown").innerHTML = ["一对一","小班课","大班课"].map(function(k){ return "<div class='payroll-breakdown-card'><div class='name'>"+k+" · 预计</div><div class='money'>"+money(stats.byFormat[k].total)+"</div><div class='count'>"+stats.byFormat[k].count+" 节（已完成 + 已排课）</div></div>"; }).join("");
+    document.getElementById("payrollResultHint").textContent = "共 "+list.length+" 条排课记录 · 预计收入含已完成和待上课课程，不含取消、请假及不计酬课程";
     document.querySelectorAll("[data-payroll-tab]").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-payroll-tab") === payrollTab); });
     document.getElementById("payrollDetails").style.display = payrollTab === "details" ? "block" : "none";
     document.getElementById("payrollPayoffs").style.display = payrollTab === "payoffs" ? "block" : "none";
@@ -6878,6 +6924,7 @@
 
         // 旧版课程被重新绑定到当前班级和真实学生后，再写入本机数据。
         repairLegacyCourseLinks();
+        syncCourseTitlesFromClasses();
 
         if(source.options){
           Object.keys(source.options).forEach(function(k){
@@ -8074,6 +8121,7 @@
     growthArchives  = loadGrowthArchives();
     courses         = loadCourses();
     if(repairLegacyCourseLinks()) saveCourses(courses);
+    syncCourseTitlesFromClasses();
     locations       = loadLocations();
     cTemplates      = loadTemplates();
     payoffRecords   = loadPayoffRecords();
@@ -8099,6 +8147,7 @@
      ===================================================================== */
   function startApp(){
     if(repairLegacyCourseLinks()) saveCourses(courses);
+    syncCourseTitlesFromClasses();
     renderTable();
     renderHome();
   }
