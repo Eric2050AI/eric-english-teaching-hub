@@ -5235,6 +5235,13 @@
 
     h += "<div class='calc-box' id='cvCalc'></div>";
     h += "<div id='cvConflictBox'></div>";
+    if(c){
+      h += "<div class='dlg-row one' style='margin-top:12px;'><div class='dlg-f'><label for='cvSaveScope'>修改范围</label>" +
+        "<select id='cvSaveScope'><option value='single'>仅修改本节课</option>" +
+        "<option value='following'>同步后续同班、同星期、同时间的未上课程</option></select>" +
+        "<div class='hint'>仅本节：适合临时插班、单次调整课酬。同步后续：适合长期新增学生、统一调整课酬。</div>" +
+        "<div class='hint'>按本节修改前的班级、星期和起止时间匹配，共 "+followingCourseTargets(c).length+" 节。同步学生名单、学生说明和课酬；保留各节日期、时间及签到，不修改已完成、已结算、取消、请假和不计酬课程。</div></div></div>";
+    }
     if(!c){
       h += "<label style='display:flex;align-items:center;gap:8px;font-size:13px;margin-top:12px;cursor:pointer;'>" +
         "<input type='checkbox' id='cvSaveTpl'>把这节课保存为课程模板，方便下次快速排课</label>";
@@ -5466,10 +5473,37 @@
     commitCourseSave(d);
   }
 
+  function followingCourseTargets(source){
+    var weekday=pdate(source.date).getDay();
+    var sourceClass=source.classId || "";
+    var sourceName=String(source.title || "").trim();
+    return courses.filter(function(c){
+      var sameClass=sourceClass && c.classId ? sourceClass === c.classId :
+        !!sourceName && String(c.title || "").trim() === sourceName;
+      return c.id !== source.id && sameClass && c.date > source.date &&
+        pdate(c.date).getDay() === weekday && c.startTime === source.startTime && c.endTime === source.endTime &&
+        (c.status === "scheduled" || c.status === "makeup") && !c.completedAt &&
+        c.settlementStatus !== "paid" && !c.paidAt && !payrollNoPay(c);
+    });
+  }
+  function syncFollowingCourseDetails(source, updated, now){
+    var targets=followingCourseTargets(source);
+    targets.forEach(function(c){
+      c.studentIds=(updated.studentIds || []).slice();
+      ["studentOrClass","payType","hourlyRate","fixedPay","studentCount","ratePerStudent","actualPay"].forEach(function(key){
+        c[key]=updated[key] === undefined ? null : updated[key];
+      });
+      c.calculatedPay=Math.round(calcPay(c)*100)/100;
+      c.updatedAt=now;
+    });
+    return targets.length;
+  }
   function commitCourseSave(d){
     var now = new Date().toISOString();
+    var syncFollowing=cvEditingId && dv("cvSaveScope") === "following", syncedCount=0;
     if(cvEditingId){
       var old = courses.find(function(x){ return x.id === cvEditingId; });
+      if(syncFollowing) syncedCount=syncFollowingCourseDetails(old,d,now);
       // 已完成课程：保留完成时间与结算状态
       d.completedAt = old.completedAt; d.completedBy = old.completedBy;
       d.settlementStatus = old.settlementStatus; d.paidAt = old.paidAt;
@@ -5494,6 +5528,7 @@
     calSelected = d.date;
     closeCourseModal();
     renderCalendar();
+    if(syncFollowing) syncToast("本节课已保存，已同步 "+syncedCount+" 节后续课程的学生名单和课酬。"+(syncedCount ? "" : "没有符合条件的后续未上课程。"));
   }
 
   function handleCourseDelete(){
