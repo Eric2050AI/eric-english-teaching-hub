@@ -924,6 +924,9 @@
   .payroll-card.success .v{color:var(--success);}
   .payroll-card.warning .v{color:#B07C20;}
   .payroll-card.danger .v{color:var(--danger);}
+  .payroll-settle-action{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .payroll-settle-action .hint{font-size:11px;}
+  .payroll-settle-action button:disabled{opacity:.5;cursor:not-allowed;}
   .payroll-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px;}
   .payroll-mini{padding:12px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:none;}
   .payroll-mini .k{font-size:12px;color:var(--muted);}
@@ -6485,6 +6488,9 @@
     });
     document.getElementById("btnPayrollGoCalendar").addEventListener("click", function(){ switchView("calendar"); });
     document.getElementById("btnPayrollSettlement").addEventListener("click", function(){ openPayrollSettlement(null); });
+    document.getElementById("payrollSummary").addEventListener("click", function(e){
+      if(e.target.closest("#btnPayrollQuickSettle")) quickSettlePayroll();
+    });
     document.getElementById("btnPayrollExportDetails").addEventListener("click", exportPayrollDetails);
     document.getElementById("btnPayrollExportPayoffs").addEventListener("click", exportPayrollPayoffs);
     document.querySelectorAll("[data-payroll-tab]").forEach(function(b){ b.addEventListener("click", function(){ payrollTab=b.getAttribute("data-payroll-tab"); renderPayroll(); }); });
@@ -6498,6 +6504,7 @@
   function renderPayroll(){
     ensurePayrollFilters();
     var list=payrollFilterCourses(), stats=payrollStats(list);
+    var ready=payrollReadyToSettle(list), readyAmount=payrollRound(ready.reduce(function(n,c){ return n+payrollPay(c); },0));
     var notice=document.getElementById("payrollNotice");
     notice.style.display = courses.length ? "none" : "block";
     notice.innerHTML = "还没有排课数据，请先到「日历排课」新增课程。课酬统计会自动复用已保存的排课记录。";
@@ -6505,7 +6512,7 @@
       "<div class='payroll-card'><div class='v'>"+stats.completed.length+" 节</div><div class='k'>周期已上课时</div><div class='meta'>"+payrollRangeText()+"</div></div>"+
       "<div class='payroll-card warning'><div class='v'>"+stats.upcoming.length+" 节</div><div class='k'>周期待上课时</div><div class='meta'>按排课计入预计课酬</div></div>"+
       "<div class='payroll-card success'><div class='v'>"+money(stats.expected)+"</div><div class='k'>周期预计课酬</div><div class='meta'>已完成 + 已排课（不含取消 / 不计酬）</div></div>"+
-      "<div class='payroll-card danger'><div class='v'>"+money(stats.pending)+"</div><div class='k'>待结算课酬</div><div class='meta'>预计课酬 − 已结算收入</div></div>";
+      "<div class='payroll-card danger'><div class='v'>"+money(stats.pending)+"</div><div class='k'>待结算课酬</div><div class='meta'>预计课酬 − 已结算收入</div><div class='payroll-settle-action'><span class='hint'>"+(ready.length ? "可结算 "+ready.length+" 节 · "+money(readyAmount) : "暂无已完成的待结算课程")+"</span><button class='btn btn-primary btn-sm' id='btnPayrollQuickSettle'"+(ready.length ? "" : " disabled")+">一键结算</button></div></div>";
     document.getElementById("payrollSecondary").innerHTML =
       "<div class='payroll-mini'><span class='k'>周期已取消 / 请假</span><span class='v'>"+stats.cancelled.length+" 节</span></div>"+
       "<div class='payroll-mini'><span class='k'>已结算收入</span><span class='v' style='color:var(--success);'>"+money(stats.settled)+"</span></div>"+
@@ -6549,8 +6556,25 @@
     document.getElementById("prStatus").value=c.status === "completed" ? "completed" : (c.status === "leave" ? "leave" : (c.status === "cancelled" ? "cancelled" : "scheduled"));
     document.getElementById("prSettle").value=ss.cls === "excluded" ? "excluded" : (c.settlementStatus === "paid" ? "paid" : "unpaid");
   }
-  function payoffAllocation(amount,start,end){
-    var eligible=courses.filter(function(c){ return payrollInRange(c,start,end) && c.status === "completed" && !payrollNoPay(c) && c.settlementStatus !== "paid"; });
+  function payrollReadyToSettle(list){
+    return list.filter(function(c){ return c.status === "completed" && !payrollNoPay(c) && c.settlementStatus !== "paid"; });
+  }
+  function quickSettlePayroll(){
+    var ready=payrollReadyToSettle(payrollFilterCourses());
+    if(!ready.length) return;
+    var amount=payrollRound(ready.reduce(function(n,c){ return n+payrollPay(c); },0));
+    var now=new Date().toISOString(), ids=ready.map(function(c){ return c.id; });
+    var start=ready[0].date, end=ready[ready.length-1].date;
+    payoffRecords.push({id:uid(),createdAt:now,updatedAt:now,payoffDate:todayStr(),payoffAmount:amount,
+      scheduleStartDate:start,scheduleEndDate:end,remark:"一键结算（当前筛选范围）",scopeCourseIds:ids,
+      courseIds:payoffAllocation(amount,start,end,ids)});
+    saveCourses(courses); savePayoffRecords(payoffRecords);
+    if(dv("payrollState") === "unpaid") document.getElementById("payrollState").value="";
+    renderPayroll();
+    syncToast("已结算 "+ready.length+" 节课程，合计 "+money(amount)+"。已保存到账流水，可在结算记录中删除以撤销（到账日期："+todayStr()+"）。");
+  }
+  function payoffAllocation(amount,start,end,scopeIds){
+    var eligible=payrollReadyToSettle(courses).filter(function(c){ return payrollInRange(c,start,end) && (!scopeIds || scopeIds.indexOf(c.id)!==-1); });
     var total=eligible.reduce(function(n,c){ return n+payrollPay(c); },0), remaining=payrollRound(amount), ids=[];
     eligible.forEach(function(c,i){ var share=i === eligible.length-1 ? remaining : (total ? payrollRound(amount*payrollPay(c)/total) : 0); remaining=payrollRound(remaining-share); c.settlementStatus="paid"; c.settledAmount=share; c.paidAt=new Date().toISOString(); c.updatedAt=new Date().toISOString(); ids.push(c.id); });
     return ids;
@@ -6571,7 +6595,7 @@
       if(start>end){ alert("覆盖开始日期不能晚于结束日期。"); return; }
       if(old) reversePayoff(old);
       var record=old || {id:uid(),createdAt:new Date().toISOString()};
-      record.payoffDate=date; record.payoffAmount=payrollRound(amount); record.scheduleStartDate=start; record.scheduleEndDate=end; record.remark=dv("poRemark"); record.updatedAt=new Date().toISOString(); record.courseIds=payoffAllocation(amount,start,end);
+      record.payoffDate=date; record.payoffAmount=payrollRound(amount); record.scheduleStartDate=start; record.scheduleEndDate=end; record.remark=dv("poRemark"); record.updatedAt=new Date().toISOString(); record.courseIds=payoffAllocation(amount,start,end,record.scopeCourseIds);
       if(!old) payoffRecords.push(record);
       saveCourses(courses); savePayoffRecords(payoffRecords); closeDlg(); payrollTab="payoffs"; renderPayroll();
     });
