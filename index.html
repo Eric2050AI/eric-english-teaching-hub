@@ -1529,6 +1529,10 @@
         </div>
       </div>
 
+      <div class="payroll-field" style="margin-bottom:14px;">
+        <label>上课地点</label>
+        <div class="payroll-presets" id="payrollLocationGroup" role="group" aria-label="按上课地点统计"></div>
+      </div>
       <div class="payroll-toolbar">
         <div class="payroll-field wide">
           <label>时间范围</label>
@@ -1566,7 +1570,7 @@
         </div>
         <div class="payroll-tabs">
           <button class="payroll-tab on" data-payroll-tab="details">课时课酬明细</button>
-          <button class="payroll-tab" data-payroll-tab="payoffs">结算记录</button>
+          <button class="payroll-tab" data-payroll-tab="payoffs">结算记录（全部地点）</button>
         </div>
         <div id="payrollDetails"></div>
         <div id="payrollPayoffs" style="display:none;"></div>
@@ -2550,7 +2554,7 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
-  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function todayStr(){ return dstr(new Date()); }
   function mostCommon(arr){
     var count = {}, best=null, bestN=0;
     arr.forEach(function(v){ if(!v) return; count[v]=(count[v]||0)+1; });
@@ -5452,6 +5456,9 @@
     if(!d.startTime || !d.endTime){ alert("请填写开始和结束时间"); return; }
     if(d.durationMinutes <= 0){ alert("结束时间必须晚于开始时间"); return; }
     if(!d.locationId){ alert("请选择授课地点"); return; }
+    if([d.hourlyRate,d.fixedPay,d.studentCount,d.ratePerStudent].some(function(n){ return n !== null && (!Number.isFinite(n) || n < 0); }) || (d.studentCount !== null && !Number.isInteger(d.studentCount))){
+      alert("课酬金额不能为负数，学生人数必须是非负整数。"); return;
+    }
 
     if(d.status !== "cancelled" && d.status !== "leave"){
       var hits = findConflicts(d.date, d.startTime, d.endTime, cvEditingId);
@@ -6380,6 +6387,7 @@
   // ================= 课酬统计 =================
 
   var payrollTab = "details";
+  var payrollLocation = "";
   var payrollPreset = "thismonth";
   var payrollBound = false;
 
@@ -6453,6 +6461,7 @@
     var state = dv("payrollState");
     return courses.filter(function(c){
       if(!payrollInRange(c, start, end)) return false;
+      if(payrollLocation && c.locationId !== payrollLocation) return false;
       if(format && payrollFormatOf(c) !== format) return false;
       if(person){
         if(person.indexOf("class:") === 0){
@@ -6483,10 +6492,26 @@
     var byFormat = {"一对一":{count:0,total:0},"小班课":{count:0,total:0},"大班课":{count:0,total:0}};
     eligible.forEach(function(c){ var k=payrollFormatOf(c); byFormat[k].count++; byFormat[k].total += payrollPay(c); });
     var today = todayStr();
-    var globalUpcoming = courses.filter(function(c){ return (c.status === "scheduled" || c.status === "makeup") && c.date >= today; }).length;
+    var globalUpcoming = courses.filter(function(c){ return (!payrollLocation || c.locationId === payrollLocation) && (c.status === "scheduled" || c.status === "makeup") && c.date >= today; }).length;
     return {completed:completed,upcoming:upcoming,cancelled:cancelled,eligible:eligible,expected:payrollRound(expected),settled:payrollRound(settled),pending:payrollRound(Math.max(0,expected-settled)),noPay:list.filter(payrollNoPay).length,globalUpcoming:globalUpcoming,byFormat:byFormat};
   }
   function payrollRangeText(){ return (dv("payrollStart") || "") + " 至 " + (dv("payrollEnd") || ""); }
+  function payrollLocationName(){
+    var loc = locById(payrollLocation);
+    var course = courses.find(function(c){ return c.locationId === payrollLocation; });
+    return payrollLocation ? (loc ? loc.name : (course && course.locationNameSnapshot) || "未知地点") : "全部地点";
+  }
+  function populatePayrollLocations(){
+    var options = [{id:"", name:"全部"}].concat(locations);
+    courses.forEach(function(c){
+      if(c.locationId && !options.some(function(l){ return l.id === c.locationId; })) options.push({id:c.locationId, name:c.locationNameSnapshot || "未知地点"});
+    });
+    if(!options.some(function(l){ return l.id === payrollLocation; })) payrollLocation = "";
+    document.getElementById("payrollLocationGroup").innerHTML = options.map(function(l){
+      var active = l.id === payrollLocation;
+      return "<button type='button' class='payroll-preset"+(active ? " on" : "")+"' data-payroll-location='"+esc(l.id)+"' aria-pressed='"+active+"'>"+esc(l.name)+"</button>";
+    }).join("");
+  }
   function populatePayrollPerson(){
     var el = document.getElementById("payrollPerson");
     if(!el) return;
@@ -6512,13 +6537,25 @@
     if(!start) return;
     if(!start.value){ var r=payrollMonthRange(0); start.value=r.start; document.getElementById("payrollEnd").value=r.end; }
     populatePayrollPerson();
+    populatePayrollLocations();
     if(payrollBound) return;
     payrollBound = true;
+    document.getElementById("payrollLocationGroup").addEventListener("click", function(e){
+      var button = e.target.closest("[data-payroll-location]");
+      if(button){ payrollLocation = button.getAttribute("data-payroll-location"); renderPayroll(); }
+    });
     document.querySelectorAll("[data-payroll-preset]").forEach(function(b){ b.addEventListener("click", function(){ setPayrollRange(b.getAttribute("data-payroll-preset")); }); });
     ["payrollStart","payrollEnd","payrollFormat","payrollPerson","payrollState"].forEach(function(id){
-      document.getElementById(id).addEventListener("change", function(){ payrollPreset="custom"; document.querySelectorAll("[data-payroll-preset]").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-payroll-preset") === "custom"); }); renderPayroll(); });
+      document.getElementById(id).addEventListener("change", function(){
+        if(id === "payrollStart" || id === "payrollEnd"){
+          payrollPreset="custom";
+          document.querySelectorAll("[data-payroll-preset]").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-payroll-preset") === "custom"); });
+        }
+        renderPayroll();
+      });
     });
     document.getElementById("btnPayrollReset").addEventListener("click", function(){
+      payrollLocation = "";
       document.getElementById("payrollFormat").value=""; document.getElementById("payrollPerson").value=""; document.getElementById("payrollState").value=""; setPayrollRange("thismonth");
     });
     document.getElementById("btnPayrollGoCalendar").addEventListener("click", function(){ switchView("calendar"); });
@@ -6551,10 +6588,10 @@
     document.getElementById("payrollSecondary").innerHTML =
       "<div class='payroll-mini'><span class='k'>周期已取消 / 请假</span><span class='v'>"+stats.cancelled.length+" 节</span></div>"+
       "<div class='payroll-mini'><span class='k'>已结算收入</span><span class='v' style='color:var(--success);'>"+money(stats.settled)+"</span></div>"+
-      "<div class='payroll-mini'><span class='k'>全局剩余待上课时</span><span class='v'>"+stats.globalUpcoming+" 节</span></div>"+
+      "<div class='payroll-mini'><span class='k'>"+(payrollLocation ? esc(payrollLocationName()) : "全局")+"剩余待上课时</span><span class='v'>"+stats.globalUpcoming+" 节</span></div>"+
       "<div class='payroll-mini'><span class='k'>周期不计酬课时</span><span class='v' style='color:var(--muted);'>"+stats.noPay+" 节</span></div>";
     document.getElementById("payrollBreakdown").innerHTML = ["一对一","小班课","大班课"].map(function(k){ return "<div class='payroll-breakdown-card'><div class='name'>"+k+" · 预计</div><div class='money'>"+money(stats.byFormat[k].total)+"</div><div class='count'>"+stats.byFormat[k].count+" 节（已完成 + 已排课）</div></div>"; }).join("");
-    document.getElementById("payrollResultHint").textContent = "共 "+list.length+" 条排课记录 · 预计收入含已完成和待上课课程，不含取消、请假及不计酬课程";
+    document.getElementById("payrollResultHint").textContent = payrollLocationName()+" · 共 "+list.length+" 条排课记录 · 预计收入含已完成和待上课课程，不含取消、请假及不计酬课程";
     document.querySelectorAll("[data-payroll-tab]").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-payroll-tab") === payrollTab); });
     document.getElementById("payrollDetails").style.display = payrollTab === "details" ? "block" : "none";
     document.getElementById("payrollPayoffs").style.display = payrollTab === "payoffs" ? "block" : "none";
@@ -6581,14 +6618,17 @@
   function openPayrollCourseEdit(id){
     var c=courses.find(function(x){ return x.id===id; }); if(!c) return;
     var ss=payrollSettlementState(c);
-    openDlg("编辑课酬明细", "<div class='dlg-row'><div class='dlg-f'><label>课程状态</label><select id='prStatus'><option value='completed'>已完成</option><option value='scheduled'>待上课</option><option value='leave'>请假</option><option value='cancelled'>已取消</option></select></div><div class='dlg-f'><label>结算状态</label><select id='prSettle'><option value='unpaid'>待结算</option><option value='paid'>已结算</option><option value='excluded'>不计酬</option></select></div></div>"+
+    openDlg("编辑课酬明细", "<div class='dlg-row'><div class='dlg-f'><label>课程状态</label><select id='prStatus'><option value='completed'>已完成</option><option value='scheduled'>待上课</option><option value='makeup'>补课待上</option><option value='leave'>请假</option><option value='cancelled'>已取消</option></select></div><div class='dlg-f'><label>结算状态</label><select id='prSettle'><option value='unpaid'>待结算</option><option value='paid'>已结算</option><option value='excluded'>不计酬</option></select></div></div>"+
       "<div class='dlg-row'><div class='dlg-f'><label>实际课酬（留空使用排课计算值）</label><input type='number' id='prActualPay' min='0' step='0.01' value='"+(c.actualPay !== null && c.actualPay !== undefined ? esc(c.actualPay) : "")+"'></div><div class='dlg-f'><label>结算备注</label><input id='prNote' value='"+esc(c.settleNote||"")+"' placeholder='如：家长已转账 / 调整原因'></div></div>"+
       "<div class='calc-box'>班级：<b>"+esc(payrollClassOf(c))+"</b><br>学生："+esc(payrollStudentsOf(c))+"<br>日期："+esc(cnDate(c.date))+" "+esc(c.startTime||"")+"–"+esc(c.endTime||"")+"<br>当前计算课酬：<span class='big'>"+money(calcPay(c))+"</span><br><span class='hint'>将实际课酬留空即可恢复为排课中的计算金额。</span></div>", "保存", function(){
         var status=dv("prStatus"), settle=dv("prSettle"), actual=dv("prActualPay");
+        if(actual !== "" && (!Number.isFinite(Number(actual)) || Number(actual) < 0)){ alert("实际课酬必须是非负金额。"); return; }
+        if(settle !== "paid" || c.settlementStatus !== "paid") c.settledAmount=null;
+        c.noPay=settle === "excluded"; c.payExcluded=settle === "excluded";
         c.status=status; c.actualPay=actual === "" ? null : payrollRound(actual); c.settleNote=dv("prNote"); c.settlementStatus=settle; c.paidAt=settle === "paid" ? (c.paidAt||new Date().toISOString()) : null; c.updatedAt=new Date().toISOString();
         saveCourses(courses); closeDlg(); renderPayroll();
       });
-    document.getElementById("prStatus").value=c.status === "completed" ? "completed" : (c.status === "leave" ? "leave" : (c.status === "cancelled" ? "cancelled" : "scheduled"));
+    document.getElementById("prStatus").value=["completed","scheduled","makeup","leave","cancelled"].indexOf(c.status) !== -1 ? c.status : "scheduled";
     document.getElementById("prSettle").value=ss.cls === "excluded" ? "excluded" : (c.settlementStatus === "paid" ? "paid" : "unpaid");
   }
   function payrollReadyToSettle(list){
@@ -6610,8 +6650,13 @@
   }
   function payoffAllocation(amount,start,end,scopeIds){
     var eligible=payrollReadyToSettle(courses).filter(function(c){ return payrollInRange(c,start,end) && (!scopeIds || scopeIds.indexOf(c.id)!==-1); });
-    var total=eligible.reduce(function(n,c){ return n+payrollPay(c); },0), remaining=payrollRound(amount), ids=[];
-    eligible.forEach(function(c,i){ var share=i === eligible.length-1 ? remaining : (total ? payrollRound(amount*payrollPay(c)/total) : 0); remaining=payrollRound(remaining-share); c.settlementStatus="paid"; c.settledAmount=share; c.paidAt=new Date().toISOString(); c.updatedAt=new Date().toISOString(); ids.push(c.id); });
+    var total=eligible.reduce(function(n,c){ return n+Math.max(0,payrollPay(c)); },0), cents=Math.round(amount*100), allocated=0, cumulative=0, ids=[];
+    eligible.forEach(function(c,i){
+      cumulative += Math.max(0,payrollPay(c));
+      var target=i === eligible.length-1 ? cents : (total ? Math.round(cents*cumulative/total) : Math.round(cents*(i+1)/eligible.length));
+      c.settlementStatus="paid"; c.settledAmount=(target-allocated)/100; allocated=target;
+      c.paidAt=new Date().toISOString(); c.updatedAt=new Date().toISOString(); ids.push(c.id);
+    });
     return ids;
   }
   function reversePayoff(r){
@@ -6619,17 +6664,19 @@
   }
   function openPayrollSettlement(id){
     var old=id ? payoffRecords.find(function(x){ return x.id===id; }) : null;
+    var scopeIds=old ? old.scopeCourseIds : (payrollLocation ? courses.filter(function(c){ return c.locationId === payrollLocation; }).map(function(c){ return c.id; }) : undefined);
     var range={start:dv("payrollStart")||payrollMonthRange(0).start,end:dv("payrollEnd")||payrollMonthRange(0).end};
     var body="<div class='dlg-row'><div class='dlg-f'><label>到账日期 *</label><input type='date' id='poDate' value='"+esc(old ? old.payoffDate : todayStr())+"'></div><div class='dlg-f'><label>到账金额 *</label><input type='number' id='poAmount' min='0' step='0.01' value='"+(old ? esc(old.payoffAmount) : "")+"' placeholder='如：2600'></div></div>"+
       "<div class='dlg-row'><div class='dlg-f'><label>覆盖开始日期 *</label><input type='date' id='poStart' value='"+esc(old ? old.scheduleStartDate : range.start)+"'></div><div class='dlg-f'><label>覆盖结束日期 *</label><input type='date' id='poEnd' value='"+esc(old ? old.scheduleEndDate : range.end)+"'></div></div>"+
       "<div class='dlg-row one'><div class='dlg-f'><label>备注</label><textarea id='poRemark' placeholder='如：7月第一笔课酬，包含暑假班与一对一课程'>"+esc(old ? old.remark||"" : "")+"</textarea></div></div>"+
-      "<div class='calc-box'>保存后，会把覆盖区间内尚未结算的「已完成」课程标记为已结算，并记录本次到账流水。未完成、取消和不计酬课程不会计入。</div>";
+      "<div class='calc-box'>"+(!old ? "结算地点：<b>"+esc(payrollLocationName())+"</b>。" : "")+"保存后，会把覆盖区间内"+(scopeIds ? "指定范围中" : "")+"尚未结算的「已完成」课程标记为已结算，并记录本次到账流水。未完成、取消和不计酬课程不会计入。</div>";
     openDlg(old ? "编辑结算记录" : "新增结算", body, "保存结算", function(){
       var date=dv("poDate"), amount=Number(dv("poAmount")), start=dv("poStart"), end=dv("poEnd");
-      if(!date || !start || !end || !Number.isFinite(amount) || amount < 0){ alert("请完整填写到账日期、金额和覆盖日期区间。"); return; }
+      if(!date || !start || !end || !dv("poAmount").trim() || !Number.isFinite(amount) || amount < 0){ alert("请完整填写到账日期、金额和覆盖日期区间，金额不能为负数。"); return; }
       if(start>end){ alert("覆盖开始日期不能晚于结束日期。"); return; }
       if(old) reversePayoff(old);
       var record=old || {id:uid(),createdAt:new Date().toISOString()};
+      if(scopeIds) record.scopeCourseIds=scopeIds;
       record.payoffDate=date; record.payoffAmount=payrollRound(amount); record.scheduleStartDate=start; record.scheduleEndDate=end; record.remark=dv("poRemark"); record.updatedAt=new Date().toISOString(); record.courseIds=payoffAllocation(amount,start,end,record.scopeCourseIds);
       if(!old) payoffRecords.push(record);
       saveCourses(courses); savePayoffRecords(payoffRecords); closeDlg(); payrollTab="payoffs"; renderPayroll();
@@ -6857,6 +6904,30 @@
     renderBackupPage();
   }
 
+  function validateBackupPayload(payload){
+    if(!payload || typeof payload !== "object") throw new Error("无效备份");
+    var source=!Array.isArray(payload) && payload.data !== undefined ? payload.data : payload;
+    if(!source || typeof source !== "object") throw new Error("无效备份内容");
+    var arrayKeys=["students","classes","classStudents","lessonLogs","parentReports","courses","locations","cTemplates","templates","payoffRecords","todos"];
+    function checkRecords(list){
+      if(!Array.isArray(list) || list.some(function(r){ return !r || typeof r !== "object" || Array.isArray(r); })) throw new Error("无效记录列表");
+      list.forEach(function(r){
+        ["studentIds","classIds","courseIds","scopeCourseIds"].forEach(function(k){
+          if(r[k] !== undefined && !Array.isArray(r[k])) throw new Error("无效关联列表");
+        });
+      });
+    }
+    if(Array.isArray(payload)){ checkRecords(payload); return payload; }
+    if(Array.isArray(source) || !arrayKeys.some(function(k){ return Object.prototype.hasOwnProperty.call(source,k); })) throw new Error("不是教学备份文件");
+    arrayKeys.forEach(function(k){ if(source[k] !== undefined) checkRecords(source[k]); });
+    ["analyses","growthArchives","options"].forEach(function(k){
+      if(source[k] !== undefined && (!source[k] || typeof source[k] !== "object" || Array.isArray(source[k]))) throw new Error("无效字典数据");
+    });
+    Object.keys(source.options || {}).forEach(function(k){
+      if(!Array.isArray(source.options[k]) || source.options[k].some(function(v){ return typeof v !== "string"; })) throw new Error("无效选项数据");
+    });
+    return source;
+  }
   function handleImportBackup(e){
     var file = e.target.files[0];
     if(!file) return;
@@ -6866,7 +6937,7 @@
         var payload = JSON.parse(reader.result);
         // 兼容当前格式，以及旧版把完整数据放在 data 里的备份格式。
         var isLegacyArray = Array.isArray(payload);
-        var source = (!isLegacyArray && payload.data && typeof payload.data === "object") ? payload.data : payload;
+        var source = validateBackupPayload(payload);
         var inStudents = isLegacyArray ? payload : (source.students || []);
         var inClasses  = isLegacyArray ? [] : (source.classes || []);
         var inCS       = isLegacyArray ? [] : (source.classStudents || []);
