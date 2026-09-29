@@ -5242,9 +5242,9 @@
     if(c){
       h += "<div class='dlg-row one' style='margin-top:12px;'><div class='dlg-f'><label for='cvSaveScope'>修改范围</label>" +
         "<select id='cvSaveScope'><option value='single'>仅修改本节课</option>" +
-        "<option value='following'>同步后续同班、同星期、同时间的未上课程</option></select>" +
+        "<option value='following'>同步后续同班、同星期、同时间的课程（含已上课和未上课）</option></select>" +
         "<div class='hint'>仅本节：适合临时插班、单次调整课酬。同步后续：适合长期新增学生、统一调整课酬。</div>" +
-        "<div class='hint'>按本节修改前的班级、星期和起止时间匹配，共 "+followingCourseTargets(c).length+" 节。同步学生名单、学生说明和课酬；保留各节日期、时间及签到，不修改已完成、已结算、取消、请假和不计酬课程。</div></div></div>";
+        "<div class='hint'>按本节修改前的班级、星期和起止时间匹配，共 "+followingCourseTargets(c).length+" 节。同步学生名单、学生说明和课酬，包含已完成、已结算课程；保留各节日期、时间、签到、完成状态和结算记录。取消、请假和不计酬课程不参与同步。</div></div></div>";
     }
     if(!c){
       h += "<label style='display:flex;align-items:center;gap:8px;font-size:13px;margin-top:12px;cursor:pointer;'>" +
@@ -5489,8 +5489,7 @@
         !!sourceName && String(c.title || "").trim() === sourceName;
       return c.id !== source.id && sameClass && c.date > source.date &&
         pdate(c.date).getDay() === weekday && c.startTime === source.startTime && c.endTime === source.endTime &&
-        (c.status === "scheduled" || c.status === "makeup") && !c.completedAt &&
-        c.settlementStatus !== "paid" && !c.paidAt && !payrollNoPay(c);
+        (c.status === "scheduled" || c.status === "makeup" || c.status === "completed") && !payrollNoPay(c);
     });
   }
   function syncFollowingCourseDetails(source, updated, now){
@@ -5535,7 +5534,7 @@
     calSelected = d.date;
     closeCourseModal();
     renderCalendar();
-    if(syncFollowing) syncToast("本节课已保存，已同步 "+syncedCount+" 节后续课程的学生名单和课酬。"+(syncedCount ? "" : "没有符合条件的后续未上课程。"));
+    if(syncFollowing) syncToast("本节课已保存，已同步 "+syncedCount+" 节后续课程的学生名单和课酬（含已上课和未上课）。"+(syncedCount ? "" : "没有符合条件的后续课程。"));
   }
 
   function handleCourseDelete(){
