@@ -6700,7 +6700,7 @@
     var blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}), url=URL.createObjectURL(blob), a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
   function exportPayrollDetails(){
-    var list=payrollFilterCourses(); downloadPayrollCsv("课酬明细_"+(dv("payrollStart")||"")+"_"+(dv("payrollEnd")||"")+".csv", [["上课日期","班级","学生","班型","单节课酬","课时状态","结算状态","备注"]].concat(list.map(function(c){ return [c.date,payrollClassOf(c),payrollStudentsOf(c),payrollFormatOf(c),payrollPay(c),payrollLessonState(c).text,payrollSettlementState(c).text,c.settleNote||c.notes||""]; })));
+    var list=payrollFilterCourses(); downloadPayrollCsv("课酬明细_"+(dv("payrollStart")||"")+"_"+(dv("payrollEnd")||"")+".csv", [["上课日期","班级","学生","班型","上课时长（小时）","单节课酬","课时状态","结算状态","备注"]].concat(list.map(function(c){ return [c.date,payrollClassOf(c),payrollStudentsOf(c),payrollFormatOf(c),c.durationMinutes == null ? "" : Math.round(c.durationMinutes/60*100)/100,payrollPay(c),payrollLessonState(c).text,payrollSettlementState(c).text,c.settleNote||c.notes||""]; })));
   }
   function exportPayrollPayoffs(){
     var start=dv("payrollStart"),end=dv("payrollEnd"), list=payoffRecords.filter(function(r){ return (!start||r.payoffDate>=start)&&(!end||r.payoffDate<=end); });
