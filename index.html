@@ -206,6 +206,10 @@
     border:1px solid var(--primary-soft);white-space:nowrap;margin:2px 4px 2px 0;
   }
   .tag-cell{min-width:190px;}
+  .payment-paid{background:#E8F7F0;color:#167454;border-color:#B8E3D1;}
+  .payment-unpaid{background:#FFF0F0;color:#B93838;border-color:#F2CACA;}
+  .payment-deposit{background:#FFF5E5;color:#966015;border-color:#EED5A7;}
+  .payment-unknown{background:#F1F5F9;color:#64748B;border-color:#CBD5E1;}
   .table-scroll{overflow-x:auto;}
   /* 关键列不折行，避免被标签列挤变形 */
   #tableBody td:nth-child(1),
@@ -214,7 +218,8 @@
   #tableBody td:nth-child(5),
   #tableBody td:nth-child(6),
   #tableBody td:nth-child(7),
-  #tableBody td:nth-child(9){white-space:nowrap;}
+  #tableBody td:nth-child(9),
+  #tableBody td:nth-child(10){white-space:nowrap;}
   #tableBody td:nth-child(3){min-width:140px;}
   .hours-badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;}
   .hours-ok{background:var(--success-light);color:#16A37A;}
@@ -1146,6 +1151,8 @@
         <div class="search-box">
           <input type="text" id="searchInput" placeholder="搜索姓名 / 学校 / 标签...">
         </div>
+        <select id="filterPaymentMethod" aria-label="筛选缴费方式"><option value="">全部缴费方式</option><option>月缴</option><option>非月缴</option><option value="unset">未设置</option></select>
+        <select id="filterPaymentStatus" aria-label="筛选本期缴费状态"><option value="">全部缴费状态</option><option>已缴费</option><option>未缴费</option><option>已交定位费</option><option value="unset">未设置</option></select>
         <button class="btn btn-ghost" id="btnPromote">🎓 升年级</button>
         <span class="hint" id="countHint"></span>
       </div>
@@ -1162,6 +1169,7 @@
               <th>剩余课时</th>
               <th>课程到期</th>
               <th>学员标签</th>
+              <th>缴费信息</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -2112,6 +2120,8 @@
   // ---------- 选项字典（种子数据，用户自定义内容会自动追加保存）----------
   var SEED_OPTIONS = {
     gender: ["男","女"],
+    paymentMethod: ["月缴","非月缴"],
+    paymentStatus: ["已缴费","未缴费","已交定位费"],
     grade: ["一年级","二年级","三年级","四年级","五年级","六年级","七年级","八年级","九年级"],
     school: [],
     courseTypes: ["校内英语","剑桥KET","剑桥PET","小升初英语","中考英语"],
@@ -2310,6 +2320,14 @@
         {key:"courseExpiry", label:"课程到期日期", type:"date", third:true},
         {key:"remainingHours", label:"剩余课时", type:"number", third:true, placeholder:"如：12"},
         {key:"textbook", label:"教材版本", type:"select", opt:"textbook", third:true}
+      ]
+    },
+    {
+      title: "缴费信息（按缴费周期手动更新）",
+      fields: [
+        {key:"paymentMethod", label:"缴费方式", type:"select", opt:"paymentMethod", noCustom:true, third:true},
+        {key:"paymentStatus", label:"本期缴费状态", type:"select", opt:"paymentStatus", noCustom:true, third:true},
+        {key:"paymentPeriod", label:"缴费周期", type:"text", third:true, placeholder:"如：2026年9月 / 2026秋季"}
       ]
     },
     {
@@ -2580,7 +2598,11 @@
 
   function renderTable(){
     var q = document.getElementById("searchInput").value.trim().toLowerCase();
+    var method = document.getElementById("filterPaymentMethod").value;
+    var payment = document.getElementById("filterPaymentStatus").value;
     var filtered = students.filter(function(s){
+      if(method && (method === "unset" ? !!s.paymentMethod : s.paymentMethod !== method)) return false;
+      if(payment && (payment === "unset" ? !!s.paymentStatus : s.paymentStatus !== payment)) return false;
       if(!q) return true;
       var hay = [s.name, s.school].concat(s.studentTags||[], s.courseTypes||[]).join(" ").toLowerCase();
       return hay.indexOf(q) !== -1;
@@ -2588,11 +2610,12 @@
 
     var body = document.getElementById("tableBody");
     var empty = document.getElementById("emptyState");
-    document.getElementById("countHint").textContent = "共 " + students.length + " 名学生" + (q ? "，筛选出 " + filtered.length + " 条" : "");
+    document.getElementById("countHint").textContent = "共 " + students.length + " 名学生" + (q || method || payment ? "，筛选出 " + filtered.length + " 条" : "");
 
     if(filtered.length === 0){
       body.innerHTML = "";
       empty.style.display = "block";
+      empty.textContent = students.length ? "没有符合筛选条件的学生，请调整筛选条件。" : "还没有学生档案，点击右上角「＋ 添加学生」开始记录吧";
       return;
     }
     empty.style.display = "none";
@@ -2614,6 +2637,7 @@
         "<td><span class='hours-badge "+hoursCls+"'>"+esc(hours)+"</span></td>" +
         "<td>"+esc(s.courseExpiry||"-")+"</td>" +
         "<td class='tag-cell'>"+(tags||"-")+"</td>" +
+        "<td>"+studentPaymentHtml(s)+"</td>" +
         "<td>" +
           "<button class='btn btn-ghost btn-sm' data-open='"+s.id+"'>编辑</button> " +
           "<button class='btn btn-danger btn-sm' data-del='"+s.id+"'>删除</button>" +
@@ -2624,6 +2648,12 @@
 
   // ================= 通用表单渲染引擎（学生 / 课堂记录 共用）=================
 
+  function studentPaymentHtml(s){
+    var tone = {"已缴费":"paid", "未缴费":"unpaid", "已交定位费":"deposit"}[s.paymentStatus] || "unknown";
+    return (s.paymentMethod ? "<span class='tag-mini'>"+esc(s.paymentMethod)+"</span>" : "") +
+      "<span class='tag-mini payment-"+tone+"'>"+esc(s.paymentStatus || "未设置")+"</span>" +
+      (s.paymentPeriod ? "<br><span class='hint'>"+esc(s.paymentPeriod)+"</span>" : "");
+  }
   function fieldHtml(f, entity){
     var val = entity ? entity[f.key] : (f.type === "tags" ? [] : "");
     var cls = "field" + (f.full ? " full" : "") + (f.third ? " third" : "");
@@ -7628,6 +7658,8 @@
     if(e.target.id === "modalOverlay") closeModal();
   });
   document.getElementById("searchInput").addEventListener("input", renderTable);
+  document.getElementById("filterPaymentMethod").addEventListener("change", renderTable);
+  document.getElementById("filterPaymentStatus").addEventListener("change", renderTable);
 
   document.getElementById("tableBody").addEventListener("click", function(e){
     var openBtn = e.target.closest("[data-open]");
