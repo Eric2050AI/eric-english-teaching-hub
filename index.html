@@ -6429,6 +6429,13 @@
     return c.title || c.studentOrClass || "未命名课程";
   }
   function payrollStudentsOf(c){
+    var markedNames = (c.studentIds || []).map(function(id){
+      var s = students.find(function(x){ return x.id === id; });
+      if(!s || !s.name) return null;
+      var status = attOf(c, id);
+      return s.name + (status ? "（" + status + "）" : "");
+    }).filter(Boolean);
+    if(markedNames.length) return markedNames.join("、");
     var names = courseStudentNames(c);
     if(names && names !== "—" && names !== "未指定学生") return names;
     return c.studentOrClass || "—";
