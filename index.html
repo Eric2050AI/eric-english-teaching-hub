@@ -950,6 +950,10 @@
   .payroll-table th{background:#F8FAFC;color:var(--muted);font-size:12px;font-weight:700;text-align:left;white-space:nowrap;}
   .payroll-table th,.payroll-table td{padding:11px 13px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
   .payroll-table td{font-size:13px;color:var(--text);}
+  #payrollDetails .payroll-table th:not(:nth-child(2)):not(:nth-child(7)),
+  #payrollDetails .payroll-table td:not(:nth-child(2)):not(:nth-child(7)){width:1%;white-space:nowrap;}
+  #payrollDetails .payroll-table td:nth-child(2)>b,
+  #payrollDetails .payroll-table button{white-space:nowrap;}
   .payroll-table tbody tr:hover{background:#FBFDFF;}
   .payroll-status{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid transparent;}
   .payroll-status.completed,.payroll-status.paid{background:var(--success-light);color:#0E8A66;border-color:#A9DECE;}
