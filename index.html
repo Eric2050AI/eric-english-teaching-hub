@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>学生成长管理系统</title>
+
 <style>
   :root{
     /* 单一品牌蓝 · 轻盈现代 */
@@ -1076,6 +1077,120 @@
     .no-print{display:none !important;}
   }
 </style>
+<style id="feedback-styles">
+#view-feedback .fb-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin:14px 0}
+#view-feedback .fb-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#view-feedback .fb-stat{padding:16px;background:var(--primary-pale);border-radius:10px}
+#view-feedback .fb-stat strong{display:block;font-size:24px;color:var(--primary)}
+#view-feedback .fb-fields{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0;align-items:end}
+#view-feedback label{display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px}
+#view-feedback input:not([type=checkbox]),#view-feedback select,#view-feedback textarea{width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font:inherit;background:white;color:var(--text)}
+#view-feedback textarea{min-height:260px;resize:vertical;line-height:1.8}
+#view-feedback .fb-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#view-feedback .fb-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9}
+#view-feedback .fb-note{color:var(--muted);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+#view-feedback .fb-warning{background:var(--warn-light);padding:12px;border-radius:8px;white-space:pre-wrap}
+#view-feedback .fb-error{color:var(--danger);white-space:pre-wrap}
+#view-feedback .fb-row{border-top:1px solid var(--border);padding:14px 0;overflow-wrap:anywhere}
+#view-feedback .fb-check{display:inline-flex;flex-direction:row;align-items:center;flex:0 1 auto;min-width:0}
+#view-feedback button{min-height:44px} #view-feedback button:disabled{opacity:.5;cursor:wait}
+#view-feedback pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:460px;overflow:auto}
+@media(max-width:760px){#view-feedback .fb-grid{grid-template-columns:1fr}#view-feedback .fb-fields{flex-direction:column;align-items:stretch}#view-feedback .fb-panel{padding:12px}#view-feedback .fb-actions .btn{flex:1;justify-content:center}}
+/* Feedback: a quiet writing space, using the workbench's existing blue palette. */
+#view-feedback{max-width:1460px;margin:0 auto}
+#view-feedback .fb-page-header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px}
+#view-feedback .fb-eyebrow{font-size:11px;font-weight:600;letter-spacing:2px;color:var(--muted)}
+#view-feedback .fb-page-header h1{font-size:27px;line-height:1.3;letter-spacing:-.6px;margin:5px 0 6px;color:var(--text)}
+#view-feedback .fb-page-header p{margin:0;font-size:13px;color:var(--muted)}
+#view-feedback .fb-panel{border-radius:16px;box-shadow:var(--sh-xs);margin:0;padding:22px}
+#view-feedback .fb-workspace{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;margin-bottom:32px}
+#view-feedback .fb-overview{display:grid;gap:16px;min-width:0}
+#view-feedback h2{font-size:16px;line-height:1.5;letter-spacing:0;margin:0;font-weight:650}
+#view-feedback .fb-compose-heading{display:flex;justify-content:space-between;gap:16px;align-items:start}
+#view-feedback .fb-compose-heading p{margin:4px 0 0;color:var(--muted);font-size:12px}
+#view-feedback .fb-step-tag,#view-feedback .fb-month-tag{white-space:nowrap;font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border-soft);border-radius:6px;padding:3px 8px}
+#view-feedback .fb-step-tag{color:var(--primary);background:var(--primary-pale);border-color:var(--primary-soft)}
+#view-feedback label{font-size:12px;font-weight:500;gap:7px;min-width:0;color:var(--title)}
+#view-feedback .fb-fields{gap:14px;margin:22px 0 18px}
+#view-feedback .fb-compose-fields{display:grid;grid-template-columns:minmax(0,1fr) 190px}
+#view-feedback input:not([type=checkbox]),#view-feedback select{padding:10px 12px;min-height:43px;border-radius:9px;font-size:13px;transition:border-color .15s,box-shadow .15s;min-width:0;max-width:100%}
+#view-feedback input:focus-visible,#view-feedback select:focus-visible,#view-feedback textarea:focus-visible,#view-feedback button:focus-visible,#view-feedback summary:focus-visible{outline:none;border-color:var(--primary);box-shadow:var(--ring)}
+#view-feedback .fb-editor{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:white;transition:border-color .15s,box-shadow .15s}
+#view-feedback .fb-editor:focus-within{border-color:var(--primary);box-shadow:var(--ring)}
+#view-feedback .fb-editor>label{display:flex;flex-direction:row;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border-soft);font-size:12px;background:#FAFBFD}
+#view-feedback .fb-editor>label span{font-size:11px;font-weight:400;color:var(--faint)}
+#view-feedback .fb-editor textarea{display:block;min-height:215px;height:215px;border:0;border-radius:0;padding:16px;font-size:14px;line-height:1.9;outline:none;box-shadow:none}
+#view-feedback textarea::placeholder{color:#99A4B5;font-weight:400}
+#view-feedback .fb-editor-meta{display:flex;justify-content:space-between;padding:8px 14px;font-size:11px;color:var(--faint);border-top:1px solid var(--border-soft)}
+#view-feedback .fb-link-lesson{margin:13px 0 0;font-size:12px;color:var(--muted)}
+#view-feedback summary{cursor:pointer;min-height:26px;border-radius:5px}
+#view-feedback .fb-link-lesson summary span{margin-left:5px;font-size:10px;color:var(--faint);background:var(--bg);padding:2px 5px;border-radius:4px}
+#view-feedback .fb-link-lesson label{margin:10px 0}
+#view-feedback .fb-compose-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border-soft);margin-top:14px;padding-top:16px}
+#view-feedback .fb-save-hint{font-size:11px;color:var(--faint)}
+#view-feedback .fb-actions{gap:8px;margin:0}
+#view-feedback .btn{font-size:12px;border-radius:8px;padding:9px 14px;font-weight:600;min-height:40px;white-space:nowrap}
+#view-feedback [data-fb=save]{padding:10px 24px}
+#view-feedback .fb-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#view-feedback .fb-section-heading h2{font-size:14px}
+#view-feedback .fb-month{background:linear-gradient(160deg,var(--primary-pale),white 65%)}
+#view-feedback .fb-month-total{display:flex;align-items:baseline;gap:9px;padding:15px 0 21px}
+#view-feedback .fb-month-total strong{font-size:46px;line-height:1.2;font-weight:650;letter-spacing:-2px;color:var(--primary);font-variant-numeric:tabular-nums}
+#view-feedback .fb-month-total>span{font-size:12px;color:var(--muted)}
+#view-feedback .fb-overview-line{display:flex;align-items:start;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--border-soft);font-size:11px;color:var(--muted)}
+#view-feedback .fb-overview-line b{font-size:12px;font-weight:500;color:var(--title);text-align:right}
+#view-feedback .fb-month>.fb-note{font-size:10px;line-height:1.7;margin:10px 0 0}
+#view-feedback .fb-recent{padding-bottom:10px}
+#view-feedback .fb-recent-item{width:100%;display:flex;gap:11px;align-items:center;padding:14px 0;background:none;border:0;border-top:1px solid var(--border-soft);cursor:pointer;text-align:left;color:var(--text);font:inherit}
+#view-feedback .fb-recent-item:first-of-type{margin-top:12px}
+#view-feedback .fb-recent-item:hover b{color:var(--primary)}
+#view-feedback .fb-recent-date{font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+#view-feedback .fb-recent-item>span:last-child{min-width:0}
+#view-feedback .fb-recent-item b{display:block;font-size:12px;font-weight:600}
+#view-feedback .fb-recent-item small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;font-size:11px;color:var(--faint);margin-top:3px}
+#view-feedback .fb-recent-empty{font-size:12px;margin:20px 0}
+#view-feedback .fb-history{min-width:0}
+#view-feedback .fb-history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px}
+#view-feedback .fb-history-header h2{font-size:18px;display:flex;gap:9px;align-items:center}
+#view-feedback .fb-count-badge{font-size:11px;font-weight:500;min-width:24px;text-align:center;border-radius:6px;background:var(--primary-light);color:var(--primary);padding:1px 6px}
+#view-feedback .fb-history-header p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+#view-feedback .fb-filters{display:grid;grid-template-columns:minmax(130px,1fr) 140px 140px minmax(140px,1.2fr) 110px auto;gap:10px;padding:16px;background:white;border:1px solid var(--border);border-radius:12px;margin-bottom:14px;align-items:end}
+#view-feedback .fb-filters label{font-size:11px;gap:5px}
+#view-feedback .fb-filters input:not([type=checkbox]),#view-feedback .fb-filters select{font-size:12px;min-height:38px;padding:8px 9px;background:#FCFDFE;border-radius:7px}
+#view-feedback .fb-record-list{display:grid;gap:12px}
+#view-feedback .fb-row{display:flex;gap:18px;padding:20px;background:white;border:1px solid var(--border);border-radius:12px;transition:box-shadow .15s,border-color .15s}
+#view-feedback .fb-row:hover{border-color:#C9D8EF;box-shadow:var(--sh-sm)}
+#view-feedback .fb-date-tile{width:54px;flex:0 0 54px;text-align:center;align-self:start;padding:9px 3px;border-radius:9px;background:var(--bg);color:var(--muted)}
+#view-feedback .fb-date-tile strong{display:block;font-size:24px;line-height:1.25;font-weight:600;color:var(--title)}
+#view-feedback .fb-date-tile span{font-size:10px}
+#view-feedback .fb-record-main{flex:1;min-width:0}
+#view-feedback .fb-record-heading{display:flex;gap:10px;align-items:center;margin-bottom:2px}
+#view-feedback .fb-record-heading h3{margin:0;font-size:14px;font-weight:600}
+#view-feedback .fb-status{font-size:10px;border-radius:4px;padding:1px 6px;color:var(--success);background:var(--success-light);white-space:nowrap}
+#view-feedback .fb-status.is-pending{color:#9B6C20;background:var(--warn-light)}
+#view-feedback .fb-record-main>.fb-note{font-size:11px}
+#view-feedback .fb-excerpt{font-size:13px;color:#59677B;margin:12px 0 16px;line-height:1.8;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#view-feedback .fb-record-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px;border-top:1px solid var(--border-soft)}
+#view-feedback .fb-record-footer>.fb-note{font-size:10px}
+#view-feedback .fb-record-footer .btn{padding:4px 9px;border:0;box-shadow:none;background:none;color:var(--muted);min-height:32px;font-size:11px}
+#view-feedback .fb-record-footer [data-fb=detail]{color:var(--primary)}
+#view-feedback .fb-record-footer [data-fb=delete]{color:var(--danger)}
+#view-feedback .fb-record-footer .btn:hover{background:var(--bg)}
+#view-feedback .fb-empty{text-align:center;padding:45px 20px;background:white;border:1px dashed #CDD8E6;border-radius:12px}
+#view-feedback .fb-empty strong{font-size:14px;font-weight:500;color:var(--title)}
+#view-feedback .fb-empty p{font-size:12px;color:var(--muted);margin:7px 0 0}
+#view-feedback #fb-message:not(:empty){margin-bottom:16px;border:1px solid var(--primary-soft);background:var(--primary-pale);color:var(--primary);padding:11px 15px;border-radius:9px;font-size:13px}
+#view-feedback #fb-message.fb-error:not(:empty){color:var(--danger);background:var(--danger-light);border-color:#F3C4C4}
+#view-feedback>.fb-panel{margin:16px 0}
+@media(max-width:1200px){#view-feedback .fb-workspace{grid-template-columns:minmax(0,1fr) 260px;gap:16px}#view-feedback .fb-panel{padding:18px}#view-feedback .fb-filters{grid-template-columns:repeat(3,minmax(0,1fr))}#view-feedback .fb-compose-footer{flex-wrap:wrap}#view-feedback .fb-save-hint{width:100%}#view-feedback .fb-compose-footer>.fb-actions{margin-left:auto}}
+@media(max-width:950px){#view-feedback .fb-workspace{grid-template-columns:1fr}#view-feedback .fb-overview{grid-template-columns:1fr 1fr;align-items:stretch}#view-feedback .fb-month-total{padding:10px 0}#view-feedback .fb-recent-item small{max-width:230px}#view-feedback .fb-compose-footer{flex-wrap:nowrap}#view-feedback .fb-save-hint{width:auto}#view-feedback .fb-compose-fields{grid-template-columns:minmax(0,1fr) 190px}}
+@media(max-width:600px){#view-feedback .fb-page-header{align-items:start;flex-wrap:wrap;gap:14px;margin-bottom:18px}#view-feedback .fb-page-header h1{font-size:24px}#view-feedback .fb-page-header>.fb-actions{width:100%}#view-feedback .fb-page-header>.fb-actions .btn{flex:1}#view-feedback .fb-panel{padding:16px;border-radius:12px}#view-feedback .fb-overview{grid-template-columns:1fr}#view-feedback .fb-recent{display:none}#view-feedback .fb-month-total{padding:10px 0 12px}#view-feedback .fb-month-total strong{font-size:36px}#view-feedback .fb-compose-fields{grid-template-columns:1fr;gap:12px;margin:18px 0 16px}#view-feedback .fb-compose-heading h2{font-size:15px}#view-feedback .fb-compose-heading p{font-size:11px}#view-feedback .fb-step-tag{display:none}#view-feedback .fb-editor textarea{height:225px;min-height:225px;padding:12px;font-size:14px}#view-feedback .fb-editor>label span{font-size:10px}#view-feedback .fb-editor-meta{font-size:10px;padding:7px 10px}#view-feedback .fb-compose-footer{flex-wrap:wrap;gap:10px}#view-feedback .fb-save-hint{width:100%}#view-feedback .fb-compose-footer>.fb-actions{width:100%;margin:0}#view-feedback .fb-compose-footer .btn{flex:1;min-height:44px;padding:10px 12px}#view-feedback .fb-workspace{margin-bottom:24px}#view-feedback .fb-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:12px 10px}#view-feedback .fb-search-field{grid-column:1/-1}#view-feedback .fb-row{padding:15px;gap:10px}#view-feedback .fb-date-tile{width:40px;flex-basis:40px}#view-feedback .fb-date-tile strong{font-size:21px}#view-feedback .fb-date-tile span{font-size:9px}#view-feedback .fb-record-footer{flex-direction:column;align-items:start;gap:8px}#view-feedback .fb-record-footer .fb-actions{width:100%;gap:2px}#view-feedback .fb-record-footer .btn{min-height:40px;padding:6px;font-size:12px}#view-feedback .fb-history-header h2{font-size:17px}#view-feedback .fb-history-header p{font-size:11px}#view-feedback .fb-link-lesson label{margin-top:9px}}
+@media(prefers-reduced-motion:reduce){#view-feedback *{animation:none!important;transition:none!important}}
+/* Scope the surrounding workbench adaptation to this page. */
+@media(max-width:950px) and (min-width:601px){.app:has(#view-feedback.active)>.sidebar{width:150px}.app:has(#view-feedback.active)>.main{padding:24px}}
+@media(max-width:600px){.app:has(#view-feedback.active){flex-direction:column}.app:has(#view-feedback.active)>.sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:8px 10px;border-right:0;border-bottom:1px solid var(--border)}.app:has(#view-feedback.active)>.sidebar .logo{width:100%;font-size:15px;padding:6px 8px 8px;border:0;margin:0}.app:has(#view-feedback.active)>.sidebar .logo small{display:none}.app:has(#view-feedback.active)>.sidebar .nav-group-title{display:none}.app:has(#view-feedback.active)>.sidebar .nav-item{font-size:11px;gap:4px;margin:2px;padding:7px 8px}.app:has(#view-feedback.active)>.sidebar .nav-item.active::before{display:none}.app:has(#view-feedback.active)>.sidebar .sidebar-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-top:6px;padding:8px 8px 0}.app:has(#view-feedback.active)>.sidebar .sync-badge{font-size:10px;margin:0}.app:has(#view-feedback.active)>.sidebar .sidebar-foot-btns{min-width:110px}.app:has(#view-feedback.active)>.main{width:100%;padding:22px 14px 32px}}
+
+</style>
 </head>
 <body>
 <div class="app">
@@ -1086,9 +1201,7 @@
     <div class="nav-item" data-view="students">📋 学生管理</div>
     <div class="nav-item" data-view="classes">🏫 班级管理</div>
     <div class="nav-item" data-view="calendar">📅 日历排课</div>
-    <div class="nav-item" data-view="todo">📝 待办日历</div>
-    <div class="nav-item" data-view="lesson">✍️ 课堂登记</div>
-    <div class="nav-item" data-view="growth">📊 成长报告</div>
+    <div class="nav-item" data-view="feedback">📄 课堂反馈</div>
     <div class="nav-sep"></div>
     <div class="nav-group-title">经营与数据</div>
     <div class="nav-item" data-view="payroll">💰 课酬统计</div>
@@ -1104,6 +1217,7 @@
   </div>
 
   <div class="main">
+    <div id="view-feedback" class="view"></div>
 
     <!-- ============ 今日工作台 ============ -->
     <div id="view-home" class="view active">
@@ -1114,7 +1228,7 @@
         </div>
         <div class="op-btns">
           <button class="btn btn-ghost" id="hmGoCalendar">📅 去排课</button>
-          <button class="btn btn-primary" id="hmGoLesson">✍️ 开始课堂登记</button>
+          <button class="btn btn-primary" id="hmGoFeedback">📄 课堂反馈</button>
         </div>
       </div>
 
@@ -1229,7 +1343,6 @@
           </div>
           <div class="op-btns">
             <button class="btn btn-ghost" id="btnDetailManageRoster">👥 管理学员</button>
-            <button class="btn btn-ghost" id="btnDetailAddRecord">✍️ 课堂登记</button>
             <button class="btn btn-ghost" id="btnPrintClassReport">🖨 导出全班学情汇总</button>
           </div>
         </div>
@@ -1274,259 +1387,6 @@
         <div id="cvDayList"></div>
       </div>
     </div>
-
-    <!-- ============ 待办日历 ============ -->
-    <div id="view-todo" class="view">
-      <div class="topbar">
-        <div>
-          <h1>待办日历</h1>
-          <div class="sub">记下每天要做的事，打开工作台时会提醒你（网页无法主动弹通知）</div>
-        </div>
-        <button class="btn btn-primary" id="btnAddTodo">＋ 新增待办</button>
-      </div>
-
-      <div class="td-stats" id="tdStats"></div>
-
-      <div class="cal-bar">
-        <div class="cal-nav">
-          <button id="tdPrev">‹</button>
-          <button id="tdToday">今天</button>
-          <button id="tdNext">›</button>
-          <span class="cal-title" id="tdTitle"></span>
-        </div>
-        <div style="margin-left:auto;display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
-          <select id="tdCatFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;background:#fff;">
-            <option value="">全部分类</option>
-          </select>
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);cursor:pointer;">
-            <input type="checkbox" id="tdHideDone" style="width:16px;height:16px;">隐藏已完成
-          </label>
-        </div>
-      </div>
-
-      <div id="tdMonthWrap"></div>
-
-      <div class="td-day">
-        <div id="tdOverdueWrap"></div>
-        <div class="td-day-head">
-          <div>
-            <h3 id="tdDayTitle">今天的待办</h3>
-            <div class="hint" id="tdDayCount"></div>
-          </div>
-          <button class="btn btn-ghost btn-sm" id="btnAddTodoToday">＋ 给这一天加待办</button>
-        </div>
-        <div class="td-list" id="tdDayList"></div>
-      </div>
-    </div>
-
-    <!-- ============ 课堂登记 ============ -->
-    <div id="view-lesson" class="view">
-      <div class="topbar">
-        <div>
-          <h1>课堂登记</h1>
-          <div class="sub">每节课下课后，先记班级整体情况，再逐个学生登记作业、错题与课堂表现</div>
-        </div>
-      </div>
-
-      <!-- 进入某个班级后才显示的工具栏 -->
-      <div class="lesson-pick-bar" id="lessonPickBar" style="display:none;">
-        <button class="btn btn-ghost btn-sm" id="btnBackToClassPick">← 换班级</button>
-        <select id="lessonClassSelect"></select>
-        <input type="date" id="lessonDate">
-        <span class="hint">第</span>
-        <input type="number" id="lessonNoInput" placeholder="课次" style="width:80px;">
-        <span class="hint">次课</span>
-        <span class="hint" id="lessonStatusHint"></span>
-      </div>
-
-      <!-- 未选班级时：以卡片形式列出全部班级，点一下直接开始登记 -->
-      <div id="lessonClassPicker" style="display:none;">
-        <div class="lp-head">
-          <h3>选择要登记的班级</h3>
-          <span class="hint">上课日期</span>
-          <input type="date" id="lpDate" class="lp-date">
-          <span class="hint" id="lpDateHint"></span>
-        </div>
-        <div class="lp-grid" id="lpGrid"></div>
-      </div>
-
-      <div id="lessonEmptyState" class="empty-state">
-        <div class="icon">✍️</div>
-        <div>请先选择班级和上课日期开始登记<br><span class="hint">若还没有班级，请先到「班级管理」创建并添加学员</span></div>
-      </div>
-
-      <div id="lessonWorkspace" style="display:none;">
-        <!-- 班级整体情况 -->
-        <div class="panel">
-          <h3>📋 本节课班级整体情况</h3>
-          <div class="desc">记录全班共性的问题与整体状态，会汇总到班级学情分析里</div>
-          <div class="sub-block">
-            <div class="t">本节课教学内容 / 知识点</div>
-            <input type="text" id="lgContent" class="free-input" style="margin-top:0;" placeholder="如：一般过去时不规则动词、Unit 5 词汇 + 听力精练...">
-          </div>
-          <div class="sub-block">
-            <div class="t">本节课练习的模块（勾选后下方学生登记只显示这些模块）</div>
-            <div class="mod-grid" id="lgModulePicker"></div>
-          </div>
-          <div class="sub-block">
-            <div class="t">全班共性问题（可多选，也可自己加）</div>
-            <div class="tag-pool" id="lgCommonPool"></div>
-            <div class="tag-add-row">
-              <input type="text" id="lgCommonAdd" placeholder="补充其他共性问题...">
-              <button type="button" id="lgCommonAddBtn">添加</button>
-            </div>
-          </div>
-          <div class="sub-block" style="margin-bottom:0;">
-            <div class="t">班级整体备注</div>
-            <textarea id="lgClassNotes" class="free-input" rows="2" style="margin-top:0;" placeholder="如：今天整体状态不错，但听力部分明显吃力，下节课需要放慢语速重练..."></textarea>
-          </div>
-        </div>
-
-        <!-- 学生登记区 -->
-        <div class="lesson-grid">
-          <div class="stu-list">
-            <h3>本班学员（点击逐个登记）</h3>
-            <div id="lessonStuList"></div>
-          </div>
-          <div id="lessonStuPanel"></div>
-        </div>
-
-        <div class="save-bar">
-          <button class="btn btn-primary" id="btnSaveLesson">💾 保存本节课登记</button>
-          <span class="hint" id="lessonSaveHint">边填边自动保存，也可以点左边的按钮手动存一次</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ 成长报告（阶段分析 + 家长报告 + 成长档案）============ -->
-    <div id="view-growth" class="view">
-      <div class="topbar no-print">
-        <div>
-          <h1>成长报告</h1>
-          <div class="sub">先选学生，再切换查看阶段报告、长期档案与历史报告</div>
-        </div>
-      </div>
-
-      <div class="gw-bar no-print">
-        <div class="gw-stu">
-          <label>学生</label>
-          <select id="gwStudent"><option value="">请选择学生</option></select>
-        </div>
-        <div class="seg" id="gwTabs">
-          <button data-gwtab="stage" class="on">📊 阶段报告</button>
-          <button data-gwtab="archive">🌱 成长档案</button>
-          <button data-gwtab="history">📄 历史报告</button>
-        </div>
-      </div>
-
-      <div id="gwEmpty" class="empty-state" style="background:#fff;border:1px solid var(--border);border-radius:12px;">
-        <div class="icon">👤</div>
-        <div>请先在上方选择一名学生<br><span class="hint">选定后即可查看该学生的阶段报告、成长档案和历史报告</span></div>
-      </div>
-
-      <!-- ---------- Tab 1：阶段报告 ---------- -->
-      <div id="gwPanelStage" class="gw-panel" style="display:none;">
-      <div class="an-toolbar no-print">
-        <select id="anStudentSelect" style="display:none;"></select>
-        <span class="hint">课次范围：从</span>
-        <select id="anStartSelect"></select>
-        <span class="hint">到</span>
-        <select id="anEndSelect"></select>
-        <button class="btn btn-primary" id="btnGenAnalysis">✨ 生成阶段报告</button>
-        <span class="hint">（同时生成图表和文字总结）</span>
-      </div>
-
-      <div class="an-toolbar no-print" id="anActionBar" style="display:none;">
-        <span class="hint">雷达图对比：</span>
-        <div class="seg" id="anCompareSeg">
-          <button data-cmp="prev" class="on">与上阶段对比</button>
-          <button data-cmp="class">与班级平均对比</button>
-        </div>
-        <button class="btn btn-ghost" id="btnDlRadar">⬇ 下载雷达图</button>
-        <button class="btn btn-ghost" id="btnDlLine">⬇ 下载折线图</button>
-        <button class="btn btn-ghost" id="btnSaveAnalysis">💾 保存编辑</button>
-        <button class="btn btn-primary" id="btnExportAnalysisPdf">📄 导出 PDF</button>
-      </div>
-
-      <div class="empty-state" id="anEmptyState">
-        <div class="icon">📊</div>
-        <div>请选择学生和课次范围，然后点击「生成分析」<br>
-          <span class="hint">需要该学生在「课堂登记」中已有记录</span></div>
-      </div>
-
-      <div id="anPrintArea" style="display:none;"></div>
-
-      <!-- 隐藏的原家长报告控件，供既有逻辑读写 -->
-      <div style="display:none;">
-        <select id="reportStudentSelect"></select>
-        <input type="date" id="reportStart">
-        <input type="date" id="reportEnd">
-        <button id="btnGenerateReport"></button>
-        <button id="btnReportRefresh"></button>
-      </div>
-
-      <div id="reportEmpty" class="report-empty" style="display:none;">生成阶段报告后，这里会出现可编辑的文字总结。</div>
-      <div id="reportLayout" class="report-layout" style="display:none;">
-        <div class="report-card">
-          <div class="report-section">
-            <div class="report-section-title"><span>报告概览</span><span class="hint" id="reportPeriodLabel"></span></div>
-            <div class="report-subtitle" id="reportStudentLabel"></div>
-          </div>
-          <div class="report-section"><div class="report-section-title">一、本阶段学习概况</div><textarea class="report-textarea" id="reportLearningSummary"></textarea></div>
-          <div class="report-section"><div class="report-section-title">二、能力成长</div><div class="report-ability-wrap" id="reportAbilityTable"></div></div>
-          <div class="report-section"><div class="report-section-title">三、优势表现</div><textarea class="report-textarea" id="reportStrengths"></textarea></div>
-          <div class="report-section"><div class="report-section-title">四、提升方向</div><textarea class="report-textarea" id="reportImprovements"></textarea></div>
-          <div class="report-section"><div class="report-section-title">五、下一阶段计划</div><textarea class="report-textarea" id="reportNextPlan"></textarea></div>
-          <div class="report-section"><div class="report-section-title">六、教师寄语</div><textarea class="report-textarea" id="reportTeacherMessage"></textarea></div>
-          <div class="payroll-actions" style="margin-top:15px;">
-            <button class="btn btn-primary" id="btnSaveParentReport">💾 保存报告</button>
-            <button class="btn btn-ghost" id="btnCopyParentReport">复制报告</button>
-            <button class="btn btn-ghost" id="btnCreateSnapshotFromReport">保存为成长快照</button>
-          </div>
-        </div>
-      </div>
-      </div><!-- /gwPanelStage -->
-
-      <!-- ---------- Tab 2：成长档案 ---------- -->
-      <div id="gwPanelArchive" class="gw-panel" style="display:none;">
-      <div class="archive-toolbar">
-        <select id="archiveStudentSelect" style="display:none;"></select>
-        <button class="btn btn-primary" id="btnAddSnapshot">＋ 新增成长快照</button>
-        <button class="btn btn-ghost" id="btnAddMilestone">＋ 添加里程碑</button>
-      </div>
-      <div id="archiveEmpty" class="report-empty">请选择学生查看成长档案。<br><span class="hint">生成阶段报告或保存成长快照后，这里会逐渐形成长期成长记录。</span></div>
-      <div id="archiveContent" style="display:none;">
-        <div class="archive-overview" id="archiveOverview"></div>
-        <div class="archive-grid">
-          <div>
-            <div class="archive-card"><h2>长期能力趋势</h2><div class="report-subtitle" style="margin-bottom:12px;">以下数据来自已保存的阶段成长快照。</div><div class="archive-trend-wrap" id="archiveTrend"></div></div>
-            <div class="archive-card"><div class="report-section-title"><span>阶段成长快照</span><button class="btn btn-ghost btn-sm" id="btnAddSnapshot2">＋ 新增</button></div><div class="snapshot-list" id="snapshotList"></div></div>
-          </div>
-          <div>
-            <div class="archive-card"><div class="report-section-title"><span>成长里程碑</span><button class="btn btn-ghost btn-sm" id="btnAddMilestone2">＋ 添加</button></div><div class="milestone-list" id="milestoneList"></div></div>
-            <div class="archive-card"><h2>长期教学方向</h2><div class="report-subtitle" style="margin-bottom:10px;">记录教师对学生长期优势、薄弱点和后续目标的判断。</div><textarea class="archive-direction" id="archiveDirection" placeholder="例如：保持语法优势，逐步加强听力输入和口语表达。"></textarea><button class="btn btn-primary" id="btnSaveArchiveDirection" style="margin-top:10px;">保存方向</button></div>
-          </div>
-        </div>
-      </div>
-      </div><!-- /gwPanelArchive -->
-
-      <!-- ---------- Tab 3：历史报告 ---------- -->
-      <div id="gwPanelHistory" class="gw-panel" style="display:none;">
-        <div class="report-card">
-          <h2>历史报告</h2>
-          <div class="report-subtitle" style="margin-bottom:13px;">
-            保存过的阶段报告会长期保留，点击即可回到「阶段报告」继续编辑或复制发给家长。
-          </div>
-          <div class="report-list" id="reportList"></div>
-        </div>
-        <div class="report-card" style="margin-top:15px;">
-          <h2>已保存的成长快照</h2>
-          <div class="report-subtitle" style="margin-bottom:13px;">快照用于长期趋势对比，可在「成长档案」中查看和管理。</div>
-          <div class="report-list" id="archiveReportList"></div>
-        </div>
-      </div>
-
-    </div><!-- /view-growth -->
 
     <!-- ============ 课酬统计 ============ -->
     <div id="view-payroll" class="view">
@@ -1776,6 +1636,267 @@
   </div>
 </div>
 
+<script id="feedback-module">
+(function(root){
+  'use strict';
+  const escape = v => String(v == null ? '' : v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const normalize = s => s.replace(/[ \t\r\n]+/g,' ').replace(/^ +| +$/g,'');
+  function validDate(y,m,d){
+    const date = new Date(Date.UTC(+y,+m-1,+d));
+    return date.getUTCFullYear()===+y && date.getUTCMonth()===+m-1 && date.getUTCDate()===+d ? `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` : '';
+  }
+  function dateTokens(s){
+    return Array.from(s.matchAll(/(\d{4})([-/年])(\d{1,2})([-/月])(\d{1,2})(日?)/g),m=>({date:validDate(m[1],m[3],m[5]),format:m[2]+m[4],text:m[0]}));
+  }
+  function heading(line){
+    const s=line.trim();
+    return /^(?:#{1,6}\s*)?(?:【|\[)?\d{4}(?:[-/年])\d{1,2}(?:[-/月])\d{1,2}/.test(s);
+  }
+  function parse(text, className){
+    // Only standalone delimiters/date headings split lessons. Ordinary line breaks remain intact.
+    const blocks=[]; let current=[];
+    function push(){ const raw=current.join('\n').trim(); if(raw) blocks.push(raw); current=[]; }
+    text.replace(/\r\n?/g,'\n').split('\n').forEach(line=>{
+      if(/^\s*---+\s*$/.test(line)){push();return;}
+      if(heading(line)&&current.some(l=>l.trim())) push();
+      current.push(line);
+    }); push();
+    const result=blocks.map(raw=>{
+      const first=raw.split('\n').find(l=>l.trim())||'';
+      const dates=dateTokens(first), warnings=[];
+      let date=dates.length===1?dates[0].date:'';
+      if(!heading(first)||!date) {date='';warnings.push('日期不明确或无效，请手动确认');}
+      const allDates=dateTokens(raw).map(t=>t.date).filter(Boolean);
+      if(new Set(allDates).size>1) warnings.push('段内存在不同日期，请检查是否需要拆分');
+      const named=first.match(/[｜|]([^】\]\n]+)[】\]]?\s*$/);
+      if(named && named[1].trim()!==className) warnings.push('标题班级与目标班级不同，请分开导入或人工确认');
+      if(dateTokens(raw).some(t=>!t.date)) warnings.push('含无效日期');
+      return {raw_content:raw,lesson_date:date,lesson_id:'',warnings,confirmed:false,selected:true,format:dates[0]?.format||'',action:'skip',resolved:false};
+    });
+    if(new Set(result.map(r=>r.format).filter(Boolean)).size>1) result.forEach(r=>r.warnings.push('日期格式不一致，请确认'));
+    return result;
+  }
+  function matches(row,courses,classId){return courses.filter(c=>c.classId===classId&&c.date===row.lesson_date&&!['cancelled','leave'].includes(c.status));}
+  const attended = (c,sid) => ['出勤','迟到'].includes((c.attendance||{})[sid]);
+  function duplicates(row,rows){return rows.filter(r=>!r.deleted_at&&r.class_id===row.class_id&&r.id!==row.id&&((row.lesson_id&&r.lesson_id===row.lesson_id)||normalize(r.raw_content)===normalize(row.raw_content)));}
+  const analysis = `请分析这份班级课堂反馈，整理班级教学内容、常见问题，以及每名学生有明确记录的学习表现和进步趋势。
+必须遵守：
+1. 全班共同问题不能直接认定为每个学生的问题。
+2. 未提及某位学生，不代表他已经掌握知识点。
+3. 所有个人判断必须有明确课堂记录依据。
+4. 区分直接成绩、教师观察、班级描述与教学内容。
+5. 证据不足时如实标注。
+6. 不得编造分数、正确率、知识点掌握程度或进步情况。
+7. 最终生成适合教师审核的个人学习成长报告草稿。`;
+  function exportText({rows,data,classId,studentId,start,end,today,anonymous,format}){
+    const cls=data.classes.find(c=>c.id===classId);
+    const memberIds=new Set(data.classStudents.filter(s=>s.classId===classId).map(s=>s.studentId));
+    const classCourses=data.courses.filter(c=>c.classId===classId);
+    classCourses.forEach(c=>{(c.studentIds||[]).forEach(s=>memberIds.add(s));Object.keys(c.attendance||{}).forEach(s=>memberIds.add(s));});
+    const roster=data.students.filter(s=>memberIds.has(s.id));
+    // Full ID encoding is stable, collision-free, and does not expose the display name.
+    const name=s=>anonymous?'学生-'+Array.from(new TextEncoder().encode(s.id),b=>b.toString(16).padStart(2,'0')).join(''):s.name;
+    const courseMap=new Map(classCourses.map(c=>[c.id,c]));
+    let selected=rows.filter(r=>!r.deleted_at&&r.status==='archived'&&r.class_id===classId&&r.lesson_date>=start&&r.lesson_date<=end);
+    if(studentId) selected=selected.filter(r=>{const c=courseMap.get(r.lesson_id);return c&&attended(c,studentId);});
+    selected.sort((a,b)=>a.lesson_date.localeCompare(b.lesson_date)||String(courseMap.get(a.lesson_id)?.startTime||'').localeCompare(String(courseMap.get(b.lesson_id)?.startTime||'')));
+    const s=data.students.find(s=>s.id===studentId);
+    const attendedCourses=classCourses.filter(c=>c.date>=start&&c.date<=end&&!['cancelled','leave'].includes(c.status)&&attended(c,studentId)).sort((a,b)=>a.date.localeCompare(b.date));
+    let out=`# ${studentId?'学生':'班级'}课堂反馈\n\n班级：${cls?.name||classId}\n导出日期：${today}\n统计时间范围：${start} 至 ${end}\n实际归档课次数：${selected.length}\n学生名单：${roster.map(name).join('、')||'未记录'}\n`;
+    if(s)out+=`学生：${name(s)}\n真实出勤课次：${attendedCourses.length}\n出勤课次明细：${attendedCourses.map(c=>`${c.date} ${c.startTime||''}（${c.id}）`).join('、')||'无可靠记录'}\n其中有归档反馈：${selected.length} 节\n`;
+    out+='\n个人表现证据说明：保留完整班级背景，由后续分析识别个人证据；未提及不等于掌握，不自动生成能力评价。\n';
+    if(anonymous) out+='\n隐私提醒：仅标题及名单已使用稳定编号。原始反馈和班级名称未替换，仍可能包含真实姓名、别名或其他个人信息；请人工检查全文。\n';
+    selected.forEach(r=>{
+      const c=courseMap.get(r.lesson_id);
+      const attendance=Object.entries(c?.attendance||{}).filter(([,v])=>['出勤','迟到','请假','缺勤'].includes(v));
+      const present=attendance.filter(([,v])=>['出勤','迟到'].includes(v)).map(([id])=>{const s=data.students.find(s=>s.id===id);return s?name(s):'未知学生';});
+      out+=`\n## ${r.lesson_date} ${c?.startTime||''}\n\n课次编号：${c?.id||'未匹配'}\n教学班级：${cls?.name||classId}\n出勤学生：${attendance.length?(present.join('、')||'已记录，无出勤学生'):'出勤信息未记录'}${attendance.length?'（仅列出明确登记出勤或迟到的学生）':''}\n\n${r.raw_content}\n`;
+    });
+    out+='\n## AI分析说明\n\n'+analysis+'\n';
+    if(format==='txt') out=out.replace(/^#{1,2} /gm,'');
+    const warnings=roster.filter(s=>s.name&&selected.some(r=>r.raw_content.includes(s.name))).map(s=>s.name);
+    return {text:out,count:selected.length,warnings};
+  }
+  function mount(host,api){
+    let rows=[],dirty=false,busy=false,filters={classId:'',start:'',end:'',q:'',status:''},batch=[],batchId='',editor=null,exportDraft=null;
+    const data=()=>api.data(), $=id=>host.querySelector('#'+id);
+    const btn=(label,action,extra='')=>`<button type="button" class="btn ${['save','download'].includes(action)?'btn-primary':'btn-ghost'}" data-fb="${action}" ${extra}>${label}</button>`;
+    const options=(items,val,empty='请选择')=>`<option value="">${empty}</option>`+items.map(i=>`<option value="${escape(i.id)}" ${i.id===val?'selected':''}>${escape(i.name||i.title||i.id)}</option>`).join('');
+    const className=id=>data().classes.find(c=>c.id===id)?.name||'已移除班级';
+    const lessonName=c=>`${c.date} ${c.startTime||''} ${c.title||''}（${c.id}）`;
+    const top=title=>`<div class="topbar"><h1>${title}</h1><div class="fb-actions">${btn('返回列表','list')}</div></div><div id="fb-message" role="status" aria-live="polite"></div>`;
+    function message(text,error=false){const el=$('fb-message');if(el){el.className=error?'fb-error':'fb-warning';el.textContent=text;}}
+    function err(e){return e?.name==='QuotaExceededError'?'本机存储空间不足，请先导出备份后再保存。':e?.message||String(e);}
+    async function guard(fn){if(busy)return;busy=true;host.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();}catch(e){message(err(e),true);}finally{busy=false;host.querySelectorAll('button').forEach(b=>b.disabled=false);}}
+    async function allRows(){const saved=await api.read();if(!Array.isArray(saved))throw Error('反馈记录读取失败，请从备份恢复，当前数据没有被覆盖。');return saved;}
+    async function load(){rows=(await allRows()).filter(r=>!r.deleted_at);}
+    async function persist(row,existing){
+      const saved=await allRows();
+      const current=saved.find(r=>r.id===(existing?.id||row.id));
+      if(existing&&(!current||current.deleted_at||current.updated_at!==existing.updated_at))throw Error('这条反馈已在其他页面修改，请先保留文字再刷新。');
+      if(!existing&&current)throw Error('这条反馈已经保存，请刷新查看。');
+      if(!row.deleted_at&&duplicates({...row,id:existing?.id||row.id},saved).length)throw Error('已有相同课次或相同内容的反馈，请查看已有记录，避免重复保存。');
+      const stamp=new Date(Math.max(Date.now(),Date.parse(current?.updated_at||'')+1||0)).toISOString();
+      const result={...row,id:existing?.id||row.id||crypto.randomUUID(),created_at:current?.created_at||stamp,updated_at:stamp,createdAt:current?.createdAt||current?.created_at||stamp,updatedAt:stamp};
+      delete result.isNew;
+      const next=saved.filter(r=>r.id!==result.id).concat(result);
+      await api.save(next);rows=next.filter(r=>!r.deleted_at);return result;
+    }
+    function list(){
+      editor=null;exportDraft=null;dirty=false;
+      const now=api.today(),month=now.slice(0,7),cls=filters.classId;
+      const archived=rows.filter(r=>r.status==='archived'&&r.lesson_date?.startsWith(month)&&(!cls||r.class_id===cls));
+      const done=data().courses.filter(c=>c.date?.startsWith(month)&&c.date<=now&&(!cls||c.classId===cls)&&!['cancelled','leave'].includes(c.status));
+      const missing=done.filter(c=>!archived.some(r=>r.lesson_id===c.id));
+      const latest=cls?rows.filter(r=>r.class_id===cls&&r.status==='archived'&&r.lesson_date).map(r=>r.lesson_date).sort().pop():null;
+      const found=rows.filter(r=>(!cls||r.class_id===cls)&&(!filters.start||r.lesson_date>=filters.start)&&(!filters.end||(r.lesson_date&&r.lesson_date<=filters.end))&&(!filters.status||r.status===filters.status)&&(!filters.q||r.raw_content.toLowerCase().includes(filters.q.toLowerCase())));
+      found.sort((a,b)=>String(b.lesson_date||'').localeCompare(String(a.lesson_date||''))||String(data().courses.find(c=>c.id===b.lesson_id)?.startTime||'').localeCompare(String(data().courses.find(c=>c.id===a.lesson_id)?.startTime||'')));
+      const recent=rows.filter(r=>!cls||r.class_id===cls).slice().sort((a,b)=>String(b.lesson_date||'').localeCompare(String(a.lesson_date||''))).slice(0,3);
+      host.innerHTML=`<div class="fb-page-header"><div><span class="fb-eyebrow">教学记录</span><h1>课堂反馈</h1><p>课后粘贴一次，月底轻松回看。</p></div><div class="fb-actions">${btn('批量导入','import')}${btn('导出反馈','export')}</div></div><div id="fb-message" role="status" aria-live="polite"></div><div class="fb-workspace">${composer({class_id:cls,lesson_date:api.today(),raw_content:''})}<aside class="fb-overview"><section class="fb-panel fb-month"><div class="fb-section-heading"><h2>本月记录</h2><span class="fb-month-tag">${escape(month.replace('-',' / '))}</span></div><div class="fb-month-total"><strong>${archived.length}</strong><span>条反馈已保存</span></div><div class="fb-overview-line"><span>本月排课待补充</span><b>${missing.length} 节</b></div><div class="fb-overview-line"><span>当前班级最近反馈</span><b>${escape(latest|| (cls?'暂无记录':'未选择班级'))}</b></div><p class="fb-note">排课统计截至今天，不含取消和请假课次。</p></section><section class="fb-panel fb-recent"><div class="fb-section-heading"><h2>最近保存</h2><span class="fb-note">${cls?escape(className(cls)):'全部班级'}</span></div>${recent.map(r=>`<button type="button" class="fb-recent-item" data-fb="detail" data-id="${escape(r.id)}"><span class="fb-recent-date">${escape((r.lesson_date||'待确认').slice(5)||'待确认')}</span><span><b>${escape(className(r.class_id))}</b><small>${escape(r.raw_content.replace(/\s+/g,' ').slice(0,34))}</small></span></button>`).join('')||'<p class="fb-note fb-recent-empty">保存第一条反馈后，会在这里显示。</p>'}</section></aside></div><section class="fb-history"><div class="fb-history-header"><div><h2>历史反馈 <span class="fb-count-badge">${found.length}</span></h2><p>按上课日期排列，随时回看与导出。</p></div>${btn('刷新记录','refresh')}</div><div class="fb-filters"><label>班级<select id="fb-class">${options(data().classes,cls,'全部班级')}</select></label><label>开始日期<input id="fb-start" type="date" value="${escape(filters.start)}"></label><label>结束日期<input id="fb-end" type="date" value="${escape(filters.end)}"></label><label class="fb-search-field">关键词<input id="fb-q" placeholder="搜索反馈内容" value="${escape(filters.q)}"></label><label>状态<select id="fb-status"><option value="">全部状态</option><option value="archived" ${filters.status==='archived'?'selected':''}>已保存</option><option value="pending" ${filters.status==='pending'?'selected':''}>待确认</option></select></label>${btn('查询','filter')}</div><div class="fb-record-list">${found.map(r=>recordCard(r)).join('')||'<div class="fb-empty"><strong>还没有课堂反馈</strong><p>在上方选择班级，粘贴反馈，保存第一份课堂记录。</p></div>'}</div></section>`;
+    }
+    function recordCard(r){
+      const lesson=data().courses.find(c=>c.id===r.lesson_id),date=r.lesson_date||'';
+      return `<article class="fb-row"><div class="fb-date-tile"><strong>${date?escape(date.slice(8)):'—'}</strong><span>${date?escape(date.slice(0,7).replace('-','.')):'日期待确认'}</span></div><div class="fb-record-main"><div class="fb-record-heading"><h3>${escape(className(r.class_id))}</h3><span class="fb-status ${r.status==='archived'?'':'is-pending'}">${r.status==='archived'?'已保存':'待确认'}</span></div><div class="fb-note">${escape(r.lesson_date||'日期待确认')}${lesson?.startTime?' · '+escape(lesson.startTime):''}${lesson?.title?' · '+escape(lesson.title):''}</div><p class="fb-text fb-excerpt">${escape(r.raw_content.slice(0,240))}</p><div class="fb-record-footer"><span class="fb-note">修改于 ${escape(new Date(r.updated_at).toLocaleString('zh-CN'))}</span><div class="fb-actions">${btn('查看','detail',`data-id="${escape(r.id)}"`)}${btn('编辑','edit',`data-id="${escape(r.id)}"`)}${btn('复制','copy',`data-id="${escape(r.id)}"`)}${btn('删除','delete',`data-id="${escape(r.id)}"`)}</div></div></div></article>`;
+    }
+
+    function classLessons(cid,date){return data().courses.filter(c=>c.classId===cid&&(!date||c.date===date)&&!['cancelled','leave'].includes(c.status)).sort((a,b)=>a.date.localeCompare(b.date)||String(a.startTime).localeCompare(String(b.startTime)));}
+    function lessonOptions(cid,date,lid){return options(classLessons(cid,date).map(c=>({id:c.id,name:lessonName(c)})),lid,'不关联排课');}
+    function composer(row){
+      const auto=classLessons(row.class_id,row.lesson_date);
+      const lid=row.lesson_id||(auto.length===1?auto[0].id:'');
+      return `<section class="fb-panel fb-composer"><div class="fb-compose-heading"><div><h2>记录本节反馈</h2><p>直接粘贴微信群原文，无需重新整理。</p></div><span class="fb-step-tag">课后记录</span></div><div class="fb-fields fb-compose-fields"><label>教学班级<select id="fe-class">${options(data().classes,row.class_id,'选择本节课的班级')}</select></label><label>上课日期<input type="date" id="fe-date" value="${escape(row.lesson_date||'')}"></label></div><div class="fb-editor"><label for="fe-text">课堂反馈<span>保留原文与换行</span></label><textarea id="fe-text" spellcheck="false" placeholder="把微信群里的课堂反馈粘贴在这里…&#10;&#10;教学内容、学生表现、课后作业，都可以原样保留。">${escape(row.raw_content||'')}</textarea><div class="fb-editor-meta"><span>中文、英文、Emoji 均可保留</span><span id="fb-word-count">${(row.raw_content||'').length} 字</span></div></div><details class="fb-link-lesson"><summary>关联已有排课 <span>可选</span></summary><label>课次<select id="fe-lesson">${lessonOptions(row.class_id,row.lesson_date,lid)}</select></label></details><div class="fb-compose-footer"><span class="fb-save-hint">无需先排课，粘贴即可保存</span><div class="fb-actions">${btn('保存并复制','save-copy')}${btn('保存反馈','save')}</div></div></section>`;
+    }
+
+    function form(row){editor={...row};dirty=false;host.innerHTML=top(row.isNew?'录入课堂反馈':'编辑课堂反馈')+composer(row);}
+    async function write(row,existing){
+      if(!data().classes.some(c=>c.id===row.class_id))throw Error('请选择班级');
+      if(!row.raw_content.trim())throw Error('请粘贴反馈内容');
+      if(row.lesson_date&&!/^\d{4}-\d{2}-\d{2}$/.test(row.lesson_date))throw Error('日期格式无效');
+      return persist({...row,lesson_id:row.lesson_id||null,lesson_date:row.lesson_date||null,status:row.status||'archived',source_type:row.source_type||'manual'},existing);
+    }
+    async function copy(text){try{await navigator.clipboard.writeText(text);message('已复制');}catch(e){message('浏览器未允许复制，请在下方文本框中手动复制。');const box=document.createElement('textarea');box.value=text;host.appendChild(box);box.select();}}
+    async function save(copyAfter){
+      const row={...(editor||{id:crypto.randomUUID(),isNew:true}),class_id:$('fe-class').value,lesson_date:$('fe-date').value,lesson_id:$('fe-lesson').value,raw_content:$('fe-text').value,status:$('fe-date').value?'archived':'pending'};
+      const dup=duplicates(row,rows);
+      if(dup.length){showDuplicates(dup,row);return;}
+      const saved=await write(row,!editor||editor.isNew?null:editor);list();message('已保存'+(saved.status==='pending'?'，待确认':''));if(copyAfter)await copy(saved.raw_content);
+    }
+    function showDuplicates(dup,row){
+      message('疑似重复。请查看已有记录；如需合并，请打开已有记录编辑，人工整理后保存。不会自动覆盖。',true);
+      const box=document.createElement('div');box.className='fb-panel';box.innerHTML=dup.map(r=>`<h3>已有反馈 ${escape(r.lesson_date)}</h3><div class="fb-text">${escape(r.raw_content)}</div>${btn('打开已有记录（请先保留当前草稿）','edit',`data-id="${r.id}"`)}`).join('')+`<h3>本次内容</h3><div class="fb-text">${escape(row.raw_content)}</div>`;host.appendChild(box);
+    }
+    function detail(row){
+      const c=data().courses.find(c=>c.id===row.lesson_id);
+      const ids=new Set([...(c?.studentIds||[]),...Object.keys(c?.attendance||{}),...data().classStudents.filter(x=>x.classId===row.class_id).map(x=>x.studentId)]);
+      host.innerHTML=top('课堂反馈详情')+`<div class="fb-panel"><h2>${escape(className(row.class_id))} · ${escape(row.lesson_date||'日期待确认')}</h2><p>${escape(c?lessonName(c):'未匹配课次')} · ${row.status==='archived'?'已保存':'待确认'}</p><div class="fb-actions">${btn('编辑','edit',`data-id="${row.id}"`)}${btn('复制','copy',`data-id="${row.id}"`)}${btn('删除','delete',`data-id="${row.id}"`)}</div><div class="fb-text">${escape(row.raw_content)}</div><hr><h3>关联学生及出勤（只读）</h3><p class="fb-note">包含当前班级名单及课次历史名单；只有课次实际签到作为出勤证据。</p>${Array.from(ids,id=>`<div>${escape(data().students.find(s=>s.id===id)?.name||'未知学生')}：${escape(c?.attendance?.[id]||'出勤信息未记录')}</div>`).join('')||'未记录'}<p class="fb-note">创建：${escape(row.created_at)}\n修改：${escape(row.updated_at)}</p></div>`;
+    }
+    function importPage(){
+      batch=[];
+      host.innerHTML=top('批量导入历史反馈')+`<div class="fb-panel"><label>目标班级<select id="fi-class">${options(data().classes,filters.classId)}</select></label><p class="fb-note">按独立日期标题或单独一行 --- 分段；普通换行不会分课。请只导入一个班级，解析后逐条确认。原文保留在预览文本框，可手动调整或拆分。</p><details><summary>输入格式示例</summary><pre>【2026-10-08｜KET综合班】\n今天学习了阅读P2信息匹配。\n小明阅读5题正确4题。\n作业：完成阅读P2练习。\n\n---\n\n【2026-10-15｜KET综合班】\n今天复习一般现在时。</pre></details><label>UTF-8 TXT / MD / 文本文件<input type="file" id="fi-file" accept=".txt,.md,.text,text/plain,text/markdown"></label><label>粘贴历史反馈<textarea id="fi-text" spellcheck="false"></textarea></label><div class="fb-actions">${btn('解析并预览','parse')}</div></div>`;
+    }
+    function preview(){
+      host.innerHTML=top('确认导入预览')+`<div class="fb-warning">目标班级：${escape(className(batch[0]?.class_id))}。仅勾选的记录提交；每条需确认日期和班级。日期不明确或未确认的内容可保存为待确认；没有排课也能保存。重复项默认跳过。</div><div class="fb-actions">${btn('保存选中反馈','batch-save')}${btn('重新检查匹配及重复','recheck')}${btn('重新粘贴','import')}</div>`+batch.map((r,i)=>{
+        if(r.saved)return `<div class="fb-panel"><b>第 ${i+1} 条 · 已保存 · ${escape(r.lesson_date||'日期待确认')}</b><p class="fb-note">如需修改，请返回列表编辑。</p><details><summary>查看已提交内容</summary><div class="fb-text">${escape(r.raw_content)}</div></details></div>`;
+        const dup=duplicates(r,rows),same=batch.filter((x,j)=>j!==i&&((x.lesson_id&&x.lesson_id===r.lesson_id)||normalize(x.raw_content)===normalize(r.raw_content))).length;
+        return `<div class="fb-panel" data-batch="${i}"><label class="fb-check"><input type="checkbox" data-field="selected" ${r.selected?'checked':''} ${r.saved?'disabled':''}>第 ${i+1} 条 ${r.saved?' · 已保存':''}</label><div class="fb-fields"><label>日期<input type="date" data-field="lesson_date" value="${escape(r.lesson_date)}"></label><label>匹配课次<select data-field="lesson_id">${lessonOptions(r.class_id,r.lesson_date,r.lesson_id)}</select></label></div><p class="${r.warnings.length||dup.length||same?'fb-warning':'fb-note'}">${escape(r.warnings.join('；')||'日期已识别')}${same?'；本批次有疑似重复':''} · ${dup.length?'疑似重复':r.confirmed&&r.lesson_date?'可保存':'待确认'}</p><label>原始全文（可编辑）<textarea data-field="raw_content">${escape(r.raw_content)}</textarea></label><label class="fb-check"><input type="checkbox" data-field="confirmed" ${r.confirmed?'checked':''}>已确认此条的班级、日期和分段</label>${dup.length?`<details><summary>查看差异 / 已有记录（${dup.length}）</summary>${dup.map(d=>`<div class="fb-text"><b>已有记录 ${escape(d.lesson_date)} · ${escape(d.id)}</b>\n${escape(d.raw_content)}</div><hr>`).join('')}<p>本次内容见上方文本框。合并时请在上方人工整理完整的最终内容。</p></details><label>处理方式<select data-field="action"><option value="skip">跳过重复</option><option value="overwrite" ${r.action==='overwrite'?'selected':''}>用本条全文覆盖</option><option value="merge" ${r.action==='merge'?'selected':''}>已人工合并，采用上方最终全文</option></select></label><label>替换哪条已有反馈<select data-field="target">${options(dup.map(d=>({id:d.id,name:`${d.lesson_date||'日期待确认'} ${d.raw_content.slice(0,45)}`})),r.target,'请选择已有记录')}</select></label><label class="fb-check"><input type="checkbox" data-field="resolved" ${r.resolved?'checked':''}>我已对比并确认替换指定记录</label>`:''}<div class="fb-actions">${btn('手动拆分此段','split',`data-index="${i}"`)}</div><p class="fb-error">${escape(r.error||'')}</p></div>`;
+      }).join('');
+    }
+    async function batchSave(){
+      const counts={ok:0,skip:0,pending:0,fail:0},failures=[];
+      for(const r of batch.filter(r=>r.selected&&!r.saved)){
+        try{
+          const dup=duplicates(r,rows);let old=null;
+          if(dup.length){
+            if(r.action==='skip'){counts.skip++;r.selected=false;continue;}
+            if(!r.resolved||!r.target)throw Error('请先选择已有记录并确认覆盖或人工合并');
+            old=dup.find(d=>d.id===r.target);if(!old)throw Error('重复记录已变化，请重新查看');
+            if(dup.some(d=>d.id!==old.id))throw Error('同时冲突多条已有记录，请分别编辑处理');
+          }
+          const saved=await write({...r,id:r.id,status:r.confirmed&&r.lesson_date?'archived':'pending',source_type:'import',import_batch_id:batchId},old);
+          r.saved=true;r.selected=false;r.error='';counts.ok++;if(saved.status==='pending')counts.pending++;
+        }catch(e){r.error=err(e);counts.fail++;failures.push(`第 ${batch.indexOf(r)+1} 条：${r.error}`);}
+      }
+      preview();message(`本次成功导入 ${counts.ok} 条；跳过重复 ${counts.skip} 条；成功记录中需进一步确认 ${counts.pending} 条；失败 ${counts.fail} 条。${failures.length?'\n'+failures.join('\n'):''}`);
+    }
+    function exportPage(){
+      host.innerHTML=top('导出反馈')+`<div class="fb-panel"><div class="fb-fields"><label>班级<select id="fx-class">${options(data().classes,filters.classId)}</select></label><label>对象<select id="fx-student"><option value="">整个班级</option></select></label><label>时间范围<select id="fx-range"><option value="1">最近一个月</option><option value="2">最近两个月</option><option value="term">本学期</option><option value="custom">自定义</option></select></label><label>开始日期<input type="date" id="fx-start"></label><label>结束日期<input type="date" id="fx-end" value="${api.today()}"></label><label>格式<select id="fx-format"><option value="md">Markdown (.md)</option><option value="txt">TXT (.txt)</option></select></label></div><label class="fb-check"><input type="checkbox" id="fx-anon">匿名导出（名单使用稳定编号，原文需人工检查）</label><p class="fb-warning">学生导出仅包含明确出勤或迟到的真实课次，出勤未记录的课次不自动视为出勤。只导出已保存反馈。\n匿名模式保留原始反馈，不自动替换姓名；预览会提示已知姓名线索，别名等仍需人工检查。</p><div class="fb-actions">${btn('生成导出预览','export-preview')}</div><div id="fx-preview"></div></div>`;
+      exportStudents();range();
+    }
+    function exportStudents(){const cid=$('fx-class').value;const ids=new Set(data().classStudents.filter(x=>x.classId===cid).map(x=>x.studentId));data().courses.filter(c=>c.classId===cid).forEach(c=>{(c.studentIds||[]).forEach(id=>ids.add(id));Object.keys(c.attendance||{}).forEach(id=>ids.add(id));});$('fx-student').innerHTML=options(data().students.filter(s=>ids.has(s.id)),'','整个班级');}
+    function range(){const type=$('fx-range').value,today=api.today(),[y,m,d]=today.split('-').map(Number);let start;
+      if(type==='custom')return;
+      if(type==='term')start=`${m>=9?y:m>=2?y:y-1}-${m>=9||m<2?'09':'02'}-01`;
+      else {const date=new Date(y,m-1-Number(type),1),last=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();date.setDate(Math.min(d,last));start=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
+      $('fx-start').value=start;$('fx-end').value=today;
+    }
+    function exportPreview(){
+      const classId=$('fx-class').value,start=$('fx-start').value,end=$('fx-end').value;
+      if(!classId||!start||!end||start>end)throw Error('请选择班级和有效日期范围');
+      const input={rows,data:data(),classId,studentId:$('fx-student').value,start,end,today:api.today(),anonymous:$('fx-anon').checked,format:$('fx-format').value};
+      exportDraft={...exportText(input),format:input.format,filename:`课堂反馈_${className(classId)}_${start}_${end}`.replace(/[<>:"/\\|?*\x00-\x1f]/g,'_'),anonymous:input.anonymous};
+      $('fx-preview').innerHTML=`<p>共 ${exportDraft.count} 节归档反馈</p>${input.anonymous?`<p class="fb-warning">文件仍可能包含个人信息。${exportDraft.warnings.length?'检测到原文姓名：'+escape(exportDraft.warnings.join('、')):'未检测到已知姓名，但无法保证不含真实姓名、别名或其他信息。'}</p><label class="fb-check"><input type="checkbox" id="fx-privacy">我已人工检查全文，了解文件仍可能包含个人信息</label>`:''}<pre>${escape(exportDraft.text)}</pre>${btn('下载文件','download')}`;
+    }
+    function hasDraft(){return dirty||batch.some(r=>!r.saved&&r.selected);}
+    async function open(){if(hasDraft())return;host.innerHTML=top('课堂反馈')+'<p>正在读取反馈…</p>';await guard(async()=>{await load();list();});}
+    host.addEventListener('click',e=>{
+      const b=e.target.closest('[data-fb]');if(!b||busy)return;
+      const action=b.dataset.fb,id=b.dataset.id,row=rows.find(r=>r.id===id);
+      guard(async()=>{
+        if(action==='list'){if(hasDraft()&&!confirm('返回列表将离开当前编辑，未保存内容不会提交。继续？'))return;batch=[];list();}
+        if(action==='refresh'){await load();list();}
+        if(action==='filter'){filters={classId:$('fb-class').value,start:$('fb-start').value,end:$('fb-end').value,q:$('fb-q').value,status:$('fb-status').value};if(filters.start&&filters.end&&filters.start>filters.end)throw Error('开始日期不能晚于结束日期');list();}
+        if(action==='new')form({id:crypto.randomUUID(),class_id:filters.classId,raw_content:'',lesson_date:api.today(),source_type:'manual',isNew:true});
+        if(action==='edit'&&row)form(row);
+        if(action==='detail'&&row)detail(row);
+        if(action==='copy'&&row)await copy(row.raw_content);
+        if(action==='save'||action==='save-copy')await save(action==='save-copy');
+        if(action==='delete'&&row&&confirm('确定删除此反馈？排课、出勤和课酬不会受到影响。')){
+          await persist({...row,deleted_at:new Date().toISOString()},row);list();message('反馈已删除');
+        }
+        if(action==='import')importPage();
+        if(action==='parse'){
+          const cid=$('fi-class').value;if(!cid)throw Error('请选择目标班级');
+          if(!$('fi-text').value.trim())throw Error('请粘贴或选择文本文件');await load();batchId=crypto.randomUUID();
+          batch=parse($('fi-text').value,className(cid)).map(r=>{const found=matches(r,data().courses,cid);if(found.length>1)r.warnings.push('同一天有多节课，必须选择课次');return {...r,id:crypto.randomUUID(),class_id:cid,lesson_id:found.length===1?found[0].id:''};});preview();
+        }
+        if(action==='split'){
+          const i=+b.dataset.index,r=batch[i];if(r.saved)throw Error('已保存的记录不能在当前批次拆分');const p=prompt('输入从第几行开始拆成下一条（该行属于下一条）');if(p===null)return;const n=Number(p),lines=r.raw_content.split('\n');if(!Number.isInteger(n)||n<2||n>lines.length)throw Error('请输入有效行号（2 至 '+lines.length+'）');
+          const make=raw=>({...r,id:crypto.randomUUID(),raw_content:raw,lesson_id:'',confirmed:false,resolved:false,action:'skip',warnings:['手动分段，请确认日期和课次']});batch.splice(i,1,make(lines.slice(0,n-1).join('\n')),make(lines.slice(n-1).join('\n')));preview();
+        }
+        if(action==='batch-save')await batchSave();
+        if(action==='recheck'){await load();preview();}
+        if(action==='export'){await load();exportPage();}
+        if(action==='export-preview')exportPreview();
+        if(action==='download'){
+          if(!exportDraft)throw Error('请先预览');if(exportDraft.anonymous&&!$('fx-privacy').checked)throw Error('请先检查原文并勾选隐私确认');
+          const url=URL.createObjectURL(new Blob(['\ufeff'+exportDraft.text],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=exportDraft.filename+'.'+exportDraft.format;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);message('文件已生成');
+        }
+      });
+    });
+    host.addEventListener('input',e=>{
+      if(e.target.id?.startsWith('fe-'))dirty=true;
+      if(e.target.id==='fe-text'&&$('fb-word-count'))$('fb-word-count').textContent=e.target.value.length+' 字';
+      const box=e.target.closest('[data-batch]');if(box){const r=batch[+box.dataset.batch],key=e.target.dataset.field;if(key){r[key]=e.target.type==='checkbox'?e.target.checked:e.target.value;if(['raw_content','lesson_date','lesson_id'].includes(key)){r.confirmed=false;r.resolved=false;box.querySelector('[data-field="confirmed"]').checked=false;const rc=box.querySelector('[data-field="resolved"]');if(rc)rc.checked=false;}}}
+      if(e.target.id?.startsWith('fx-')&&!['fx-privacy'].includes(e.target.id)&&$('fx-preview')){exportDraft=null;$('fx-preview').innerHTML='';}
+    });
+    host.addEventListener('change',e=>{
+      if(['fe-class','fe-date'].includes(e.target.id)){const found=classLessons($('fe-class').value,$('fe-date').value);$('fe-lesson').innerHTML=lessonOptions($('fe-class').value,$('fe-date').value,found.length===1?found[0].id:'');}
+      if(e.target.id==='fe-lesson'){const c=data().courses.find(c=>c.id===e.target.value);if(c)$('fe-date').value=c.date;}
+      const box=e.target.closest('[data-batch]');if(box&&e.target.dataset.field==='lesson_date'){const r=batch[+box.dataset.batch];r.lesson_id='';box.querySelector('[data-field="lesson_id"]').innerHTML=lessonOptions(r.class_id,r.lesson_date,'');}
+      if(box&&e.target.dataset.field==='lesson_id'){const r=batch[+box.dataset.batch],c=data().courses.find(c=>c.id===r.lesson_id);if(c){r.lesson_date=c.date;box.querySelector('[data-field="lesson_date"]').value=c.date;}}
+      if(box&&['confirmed','resolved','action','target','lesson_id','lesson_date'].includes(e.target.dataset.field))preview();
+      if(e.target.id==='fi-file')guard(async()=>{const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024)throw Error('文本文件请小于 5 MB');const raw=new TextDecoder('utf-8',{fatal:true}).decode(await f.arrayBuffer());$('fi-text').value=raw.replace(/^\ufeff/,'');message('文件已读取，请解析预览');});
+      if(e.target.id==='fx-class')exportStudents();if(e.target.id==='fx-range')range();
+    });
+    window.addEventListener('beforeunload',e=>{if(hasDraft()){e.preventDefault();e.returnValue='';}});
+    return {open,canLeave:()=>!hasDraft()||confirm('当前反馈尚未保存。离开后草稿仍保留在此页面，刷新网页会丢失。继续？')};
+  }
+  const exported={parse,normalize,validDate,matches,attended,duplicates,exportText,mount};
+  if(typeof module!=='undefined'&&module.exports)module.exports=exported;
+  else root.LessonFeedback=exported;
+})(typeof window!=='undefined'?window:globalThis);
+
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
@@ -1801,6 +1922,13 @@
   var STORAGE_ANALYSES = "esm_analyses_v1";
   var STORAGE_PARENT_REPORTS = "esm_parent_reports_v1";
   var STORAGE_GROWTH_ARCHIVES = "esm_growth_archives_v1";
+  var STORAGE_FEEDBACK = "esm_lesson_feedback_v1";
+  function loadFeedback(){
+    var saved = JSON.parse(localStorage.getItem(STORAGE_FEEDBACK) || "[]");
+    if(!Array.isArray(saved)) throw new Error("课堂反馈记录格式异常，请保留备份后恢复。");
+    return saved;
+  }
+  function saveFeedback(list){ localStorage.setItem(STORAGE_FEEDBACK, JSON.stringify(list)); }
 
   /* =====================================================================
      云同步引擎
@@ -1814,7 +1942,7 @@
     "esm_students_v1","esm_options_v1","esm_classes_v1","esm_class_students_v1",
     "esm_lesson_logs_v1","esm_analyses_v1","esm_parent_reports_v1","esm_growth_archives_v1",
     "esm_courses_v1","esm_locations_v1","esm_ctemplates_v1","esm_payoff_records_v1",
-    "esm_todos_v1"
+    "esm_todos_v1","esm_lesson_feedback_v1"
   ];
 
   var sb = null;                 // Supabase 客户端
@@ -3045,7 +3173,6 @@
         "<td><div class='op-btns'>" +
           "<button class='btn btn-ghost btn-sm' data-cedit='"+c.id+"'>编辑</button>" +
           "<button class='btn btn-ghost btn-sm' data-croster='"+c.id+"'>管理学员</button>" +
-          "<button class='btn btn-ghost btn-sm' data-cbatch='"+c.id+"'>课堂登记</button>" +
           "<button class='btn btn-ghost btn-sm' data-cdetail='"+c.id+"'>学情统计</button>" +
           "<button class='btn btn-danger btn-sm' data-cdel='"+c.id+"'>删除</button>" +
         "</div></td>" +
@@ -3154,22 +3281,7 @@
   }
 
   // --- 跳转到「课堂登记」并自动选好班级与日期 ---
-  function goToLessonLog(classId){
-    var cls = classes.find(function(c){ return c.id === classId; });
-    if(!cls) return;
-    if(getClassStudentIds(classId).length === 0){
-      alert("班级「"+(cls.name||"")+"」还没有学员，请先「管理学员」添加学生。");
-      return;
-    }
-    switchView("lesson");
-    document.getElementById("lessonClassSelect").value = classId;
-    if(!document.getElementById("lessonDate").value){
-      document.getElementById("lessonDate").value = todayStr();
-    }
-    loadOrCreateLog();
-  }
 
-  // --- 班级详情页 ---
   function showClassList(){
     detailClassId = null;
     students = loadStudents();
@@ -4934,14 +5046,6 @@
             html += atTime[k] ? courseChip(atTime[k]) : "<div class='cal-slot-empty'></div>";
           }
         });
-        // 当天有待办就点几个小圆点，方便顺便看到
-        var tdOn = todosOn(wd.ds).filter(function(t){ return !t.done; });
-        if(tdOn.length){
-          html += "<div class='cal-todo-dots' title='"+esc(tdOn.map(function(t){ return t.title; }).join("；"))+"'>" +
-            tdOn.slice(0,5).map(function(t){
-              return "<i style='background:"+catColor(t.category)+"'></i>";
-            }).join("") + "</div>";
-        }
         html += "</div>";
       });
     }
@@ -5103,7 +5207,6 @@
       if(c.status !== "leave" && c.status !== "cancelled") acts2.push(["move","调课","btn-ghost"]);
       if(c.status === "completed"){
         acts2.push(["settle","结算","btn-ghost"]);
-        acts2.push(["tolog","创建课堂记录","btn-ghost"]);
       }
       if(c.status === "leave" || c.status === "cancelled") acts2.push(["makeup","安排补课","btn-ghost"]);
       acts2.push(["copy","复制","btn-ghost"]);
@@ -5834,19 +5937,6 @@
       return;
     }
 
-    if(act === "tolog"){
-      // 跳到课堂登记，带上日期；若课程绑定了班级名，尝试自动匹配班级
-      var matched = classes.find(function(cl){ return cl.id === c.classId; })
-                 || classes.find(function(cl){ return cl.name === c.title; });
-      switchView("lesson");
-      document.getElementById("lessonDate").value = c.date;
-      if(matched) document.getElementById("lessonClassSelect").value = matched.id;
-      loadOrCreateLog();
-      if(!matched){
-        alert("已跳转到课堂登记并填好日期（"+cnDate(c.date)+"）。\n请在上方选择对应班级后开始登记。");
-      }
-      return;
-    }
   }
 
   // ---- 当天批量操作 ----
@@ -6786,7 +6876,7 @@
   var DIAG_LABELS = {
     "esm_students_v1":"学生档案", "esm_classes_v1":"班级",
     "esm_class_students_v1":"班级学员关系", "esm_lesson_logs_v1":"课堂登记",
-    "esm_courses_v1":"日历排课", "esm_todos_v1":"待办事项",
+    "esm_courses_v1":"日历排课", "esm_todos_v1":"待办事项", "esm_lesson_feedback_v1":"课堂反馈",
     "esm_payoff_records_v1":"课酬结算", "esm_analyses_v1":"成长分析编辑",
     "esm_parent_reports_v1":"家长报告", "esm_growth_archives_v1":"成长档案",
     "esm_options_v1":"自定义选项", "esm_locations_v1":"上课地点",
@@ -6916,6 +7006,7 @@
       analyses: analyses,
       parentReports: parentReports,
       growthArchives: growthArchives,
+      lessonFeedback: loadFeedback(),
       courses: courses,
       locations: locations,
       cTemplates: cTemplates,
@@ -6948,7 +7039,7 @@
     if(!payload || typeof payload !== "object") throw new Error("无效备份");
     var source=!Array.isArray(payload) && payload.data !== undefined ? payload.data : payload;
     if(!source || typeof source !== "object") throw new Error("无效备份内容");
-    var arrayKeys=["students","classes","classStudents","lessonLogs","parentReports","courses","locations","cTemplates","templates","payoffRecords","todos"];
+    var arrayKeys=["students","classes","classStudents","lessonLogs","parentReports","lessonFeedback","courses","locations","cTemplates","templates","payoffRecords","todos"];
     function checkRecords(list){
       if(!Array.isArray(list) || list.some(function(r){ return !r || typeof r !== "object" || Array.isArray(r); })) throw new Error("无效记录列表");
       list.forEach(function(r){
@@ -6960,6 +7051,9 @@
     if(Array.isArray(payload)){ checkRecords(payload); return payload; }
     if(Array.isArray(source) || !arrayKeys.some(function(k){ return Object.prototype.hasOwnProperty.call(source,k); })) throw new Error("不是教学备份文件");
     arrayKeys.forEach(function(k){ if(source[k] !== undefined) checkRecords(source[k]); });
+    (source.lessonFeedback || []).forEach(function(r){
+      if(typeof r.id !== "string" || typeof r.class_id !== "string" || typeof r.raw_content !== "string") throw new Error("课堂反馈备份格式无效");
+    });
     ["analyses","growthArchives","options"].forEach(function(k){
       if(source[k] !== undefined && (!source[k] || typeof source[k] !== "object" || Array.isArray(source[k]))) throw new Error("无效字典数据");
     });
@@ -6985,6 +7079,7 @@
         var inAnalyses = isLegacyArray ? {} : (source.analyses || {});
         var inParentReports = isLegacyArray ? [] : (source.parentReports || []);
         var inGrowthArchives = isLegacyArray ? {} : (source.growthArchives || {});
+        var inFeedback = isLegacyArray ? [] : (source.lessonFeedback || []);
         var inCourses  = isLegacyArray ? [] : (source.courses || []);
         var inLocs     = isLegacyArray ? [] : (source.locations || []);
         var inTpls     = isLegacyArray ? [] : (source.cTemplates || source.templates || []);
@@ -7111,6 +7206,8 @@
         saveAnalyses(analyses);
         saveParentReports(parentReports);
         saveGrowthArchives(growthArchives);
+        // 旧备份没有反馈字段时，保留现有反馈，避免误删新模块内容。
+        if(source.lessonFeedback !== undefined) saveFeedback(doMerge ? mergeValues(loadFeedback(), inFeedback) : inFeedback);
         saveCourses(courses);
         saveLocations(locations);
         saveTemplates(cTemplates);
@@ -7160,6 +7257,7 @@
     saveLessonLogs(lessonLogs); saveAnalyses(analyses); saveRecords(classRecords); saveParentReports(parentReports); saveGrowthArchives(growthArchives);
     saveCourses(courses); saveTemplates(cTemplates); savePayoffRecords(payoffRecords);
     todos = []; saveTodos(todos);
+    saveFeedback([]);
     anData = null; curLog = null; curStuId = null; detailClassId = null;
 
     renderTable();
@@ -7167,324 +7265,19 @@
     alert("已清空全部数据。");
   }
 
-  // ================= 待办日历 =================
-
+  // 已移除模块的历史待办数据仅保留备份与云同步兼容。
   var STORAGE_TODOS = "esm_todos_v1";
-  var TODO_CATEGORIES = [
-    {name:"备课 / 教学准备", color:"#2563EB"},
-    {name:"家长沟通",       color:"#16A37A"},
-    {name:"个人事项",       color:"#EAA63B"}
-  ];
-
   function loadTodos(){ var r = localStorage.getItem(STORAGE_TODOS); return r ? JSON.parse(r) : []; }
   function saveTodos(l){ localStorage.setItem(STORAGE_TODOS, JSON.stringify(l)); }
-
   var todos = loadTodos();
-
-  // 一次性写入「教学洞察模块」的评估待办（只在首次运行时加，之后不再重复）
-  (function seedInsightTodo(){
-    var FLAG = "esm_seed_insight_v1";
-    if(localStorage.getItem(FLAG)) return;
-    var now = new Date().toISOString();
-    todos.push({
-      id: uid(),
-      date: "2026-11-01",
-      title: "评估是否要做「教学洞察」模块",
-      category: "个人事项",
-      note: "等学生到 25~30 人 / 带班超过 6 个时再评估。要解决的是现有报告看不到的横向视角：\n" +
-            "1) 跨学生对比——所有学生里谁某项能力最弱，用于决定专项训练内容；\n" +
-            "2) 知识点反向聚合——某个知识点有多少人错过，用于决定要不要全班重讲；\n" +
-            "3) 趋势预警——自动找出连续几次课掌握度下降的学生；\n" +
-            "4) 入学学情 vs 当前实际的对比——检验教学有没有打中最初的薄弱点。\n" +
-            "注意：不要叫「学情分析」，也不要再放雷达图，否则会和成长报告重复。",
-      done:false, doneAt:null, repeat:"", seriesId:null,
-      createdAt: now, updatedAt: now
-    });
-    saveTodos(todos);
-    localStorage.setItem(FLAG, "1");
-  })();
-
-  var tdCursor = new Date();
-  var tdSelected = dstr(new Date());
-
-  // 分类列表 = 内置 + 自定义
-  function todoCats(){
-    var list = TODO_CATEGORIES.slice();
-    (options.todoCats || []).forEach(function(n){
-      if(!list.some(function(c){ return c.name === n; })) list.push({name:n, color:"#7C6BD8"});
-    });
-    return list;
-  }
-  function catColor(name){
-    var c = todoCats().find(function(x){ return x.name === name; });
-    return c ? c.color : "#64748B";
-  }
-  function todosOn(date){
-    return todos.filter(function(t){ return t.date === date; })
-      .sort(function(a,b){
-        if(!!a.done !== !!b.done) return a.done ? 1 : -1;
-        return (a.createdAt||"").localeCompare(b.createdAt||"");
-      });
-  }
-  function overdueTodos(){
-    var today = todayStr();
-    return todos.filter(function(t){ return !t.done && t.date < today; })
-      .sort(function(a,b){ return (a.date||"").localeCompare(b.date||""); });
-  }
-  function tdPassFilter(t){
-    var cat = dv("tdCatFilter");
-    if(cat && t.category !== cat) return false;
-    if(document.getElementById("tdHideDone").checked && t.done) return false;
-    return true;
-  }
-
-  function populateTdCatFilter(){
-    var el = document.getElementById("tdCatFilter");
-    var cur = el.value;
-    el.innerHTML = "<option value=''>全部分类</option>" +
-      todoCats().map(function(c){ return "<option value=\""+esc(c.name)+"\">"+esc(c.name)+"</option>"; }).join("");
-    el.value = cur;
-  }
-
-  function renderTodoStats(){
-    var today = todayStr();
-    var todayList = todos.filter(function(t){ return t.date === today; });
-    var doneToday = todayList.filter(function(t){ return t.done; }).length;
-    var od = overdueTodos().length;
-    var ws = weekStart(new Date()), we = addDays(ws, 6);
-    var weekLeft = todos.filter(function(t){
-      return !t.done && t.date >= dstr(ws) && t.date <= dstr(we);
-    }).length;
-    var stats = [
-      {v:todayList.length - doneToday, k:"今天待完成", ic:"📌", col:"var(--primary)"},
-      {v:od,                           k:"已逾期",     ic:"⚠️", col:"#D14545"},
-      {v:weekLeft,                     k:"本周待完成", ic:"🗓", col:"#B07C20"},
-      {v:doneToday,                    k:"今天已完成", ic:"✅", col:"#0E8A66"}
-    ];
-    document.getElementById("tdStats").innerHTML = stats.map(function(s){
-      return "<div class='td-stat'><span style='font-size:20px;'>"+s.ic+"</span>" +
-        "<div><div class='v' style='color:"+s.col+"'>"+s.v+"</div><div class='k'>"+esc(s.k)+"</div></div></div>";
-    }).join("");
-  }
-
-  function renderTodoMonth(){
-    var y = tdCursor.getFullYear(), m = tdCursor.getMonth();
-    document.getElementById("tdTitle").textContent = y + "年" + (m+1) + "月";
-    var gridStart = weekStart(new Date(y, m, 1));
-    var html = "<div class='cal-grid td-cal'>";
-    ["周一","周二","周三","周四","周五","周六","周日"].forEach(function(w){
-      html += "<div class='cal-wd'>"+w+"</div>";
-    });
-    for(var i=0;i<42;i++){
-      var d = addDays(gridStart, i);
-      var ds = dstr(d);
-      var other = d.getMonth() !== m;
-      var list = todosOn(ds).filter(tdPassFilter);
-      html += "<div class='cal-cell"+(other?" other":"")+(ds===tdSelected?" sel":"")+"' data-tdday='"+ds+"'>";
-      html += "<span class='cal-dnum"+(isToday(ds)?" today":"")+"'>"+(isToday(ds)?"今 ":"")+d.getDate()+"</span>";
-      // 全部显示，不做截断（格子会自动变高）
-      list.forEach(function(t){
-        html += "<div class='td-cell-item"+(t.done?" done":"")+"' data-tdopen='"+esc(t.id)+"' " +
-          "style='border-left-color:"+catColor(t.category)+";background:"+catColor(t.category)+"14;' " +
-          "title='"+esc(t.title+(t.note?" ｜ "+t.note:""))+"'>"+esc(t.title)+"</div>";
-      });
-      html += "</div>";
-    }
-    html += "</div>";
-    document.getElementById("tdMonthWrap").innerHTML = html;
-  }
-
-  function todoItemHtml(t){
-    return "<div class='td-item"+(t.done?" done":"")+"' style='border-left-color:"+catColor(t.category)+"'>" +
-      "<div class='td-check"+(t.done?" on":"")+"' data-tdtoggle='"+esc(t.id)+"'>✓</div>" +
-      "<div class='td-body'>" +
-        "<div class='tt'>"+esc(t.title)+"</div>" +
-        "<div class='mt'>" +
-          "<span class='td-cat' style='background:"+catColor(t.category)+"18;color:"+catColor(t.category)+";border-color:"+catColor(t.category)+"44;'>"+
-            esc(t.category||"未分类")+"</span>" +
-          "　"+esc(cnDate(t.date)) +
-          (t.repeat === "weekly" ? "　🔁 每周" : t.repeat === "monthly" ? "　🔁 每月" : "") +
-          (t.note ? "<br>"+esc(t.note) : "") +
-        "</div>" +
-      "</div>" +
-      "<div class='op-btns'>" +
-        "<button class='btn btn-ghost btn-sm' data-tdedit='"+esc(t.id)+"'>编辑</button>" +
-        "<button class='btn btn-danger btn-sm' data-tddel='"+esc(t.id)+"'>删除</button>" +
-      "</div></div>";
-  }
-
-  function renderTodoDay(){
-    // 逾期区（只在选中的是今天或更晚时提示，避免翻看历史时干扰）
-    var od = overdueTodos().filter(tdPassFilter);
-    var odWrap = document.getElementById("tdOverdueWrap");
-    odWrap.innerHTML = (od.length && tdSelected >= todayStr())
-      ? "<div class='td-overdue-box'><h4>⚠ 有 "+od.length+" 项已逾期还没完成</h4><div class='td-list'>" +
-        od.map(todoItemHtml).join("") + "</div></div>"
-      : "";
-
-    var list = todosOn(tdSelected).filter(tdPassFilter);
-    document.getElementById("tdDayTitle").textContent =
-      cnDate(tdSelected) + (isToday(tdSelected) ? "（今天）" : "") + "的待办";
-    var undone = list.filter(function(t){ return !t.done; }).length;
-    document.getElementById("tdDayCount").textContent =
-      list.length ? ("共 "+list.length+" 项，待完成 "+undone+" 项") : "";
-
-    document.getElementById("tdDayList").innerHTML = list.length
-      ? list.map(todoItemHtml).join("")
-      : "<div class='td-empty'><span class='ic'>🌤</span>这一天还没有待办，点右上角添加</div>";
-  }
-
-  function renderTodo(){
-    populateTdCatFilter();
-    renderTodoStats();
-    renderTodoMonth();
-    renderTodoDay();
-  }
-
-  // 新增 / 编辑待办
-  function openTodoDialog(id, presetDate){
-    var t = id ? todos.find(function(x){ return x.id === id; }) : null;
-    var cats = todoCats();
-    var d = t || {date: presetDate || tdSelected, title:"", category: cats[0].name, note:"", repeat:"", repeatUntil:""};
-
-    openDlg(t ? "编辑待办" : "新增待办",
-      "<div class='dlg-row one'><div class='dlg-f'><label>要做什么 *</label>" +
-        "<input type='text' id='tdTitle2' value=\""+esc(d.title)+"\" placeholder='如：给 KET 暑假班家长发上周学情'></div></div>" +
-      "<div class='dlg-row'>" +
-        "<div class='dlg-f'><label>日期 *</label><input type='date' id='tdDate2' value='"+esc(d.date)+"'></div>" +
-        "<div class='dlg-f'><label>分类</label><select id='tdCat2'>" +
-          cats.map(function(c){ return "<option value=\""+esc(c.name)+"\" "+(c.name===d.category?"selected":"")+">"+esc(c.name)+"</option>"; }).join("") +
-          "<option value='__new__'>+ 新增分类…</option>" +
-        "</select></div>" +
-      "</div>" +
-      (t ? "" :
-        "<div class='dlg-row'>" +
-          "<div class='dlg-f'><label>重复</label><select id='tdRepeat2'>" +
-            "<option value=''>不重复</option><option value='weekly'>每周这一天</option><option value='monthly'>每月这一天</option>" +
-          "</select></div>" +
-          "<div class='dlg-f'><label>重复到（含）</label><input type='date' id='tdUntil2' value='"+esc(dstr(addDays(pdate(d.date), 56)))+"'></div>" +
-        "</div>") +
-      "<div class='dlg-row one'><div class='dlg-f'><label>备注</label>" +
-        "<textarea id='tdNote2' placeholder='补充说明…'>"+esc(d.note||"")+"</textarea></div></div>",
-      t ? "保存" : "添加", function(){
-        var title = dv("tdTitle2").trim();
-        var date = dv("tdDate2");
-        var cat = dv("tdCat2");
-        if(!title){ alert("请填写待办内容"); return; }
-        if(!date){ alert("请选择日期"); return; }
-        if(cat === "__new__"){ alert("请先输入并确认新分类名称"); return; }
-        var now = new Date().toISOString();
-
-        if(t){
-          t.title = title; t.date = date; t.category = cat; t.note = dv("tdNote2"); t.updatedAt = now;
-        } else {
-          var rep = dv("tdRepeat2") || "";
-          var until = dv("tdUntil2");
-          var seriesId = rep ? uid() : null;
-          var dates = [date];
-          if(rep && until && pdate(until) >= pdate(date)){
-            var cur = pdate(date);
-            var guard = 0;
-            while(guard++ < 400){
-              cur = rep === "weekly" ? addDays(cur, 7) : (function(){
-                var x = new Date(cur.getTime()); x.setMonth(x.getMonth()+1); return x;
-              })();
-              if(cur > pdate(until)) break;
-              dates.push(dstr(cur));
-            }
-          }
-          dates.forEach(function(ds){
-            todos.push({
-              id: uid(), date: ds, title: title, category: cat, note: dv("tdNote2"),
-              done:false, doneAt:null, repeat: rep, seriesId: seriesId,
-              createdAt: now, updatedAt: now
-            });
-          });
-          tdSelected = date;
-        }
-        saveTodos(todos);
-        closeDlg();
-        renderTodo();
-        renderHome();
-      });
-
-    // 分类下拉选「新增分类」时就地输入
-    var catSel = document.getElementById("tdCat2");
-    catSel.addEventListener("change", function(){
-      if(catSel.value !== "__new__") return;
-      var name = prompt("请输入新的分类名称：");
-      if(name && name.trim()){
-        options.todoCats = options.todoCats || [];
-        if(options.todoCats.indexOf(name.trim()) === -1){
-          options.todoCats.push(name.trim());
-          saveOptions(stripSeeds());
-        }
-        var opt = document.createElement("option");
-        opt.value = name.trim(); opt.textContent = name.trim();
-        catSel.insertBefore(opt, catSel.lastElementChild);
-        catSel.value = name.trim();
-      } else {
-        catSel.value = cats[0].name;
-      }
-    });
-  }
-
-  function toggleTodoDone(id){
-    var t = todos.find(function(x){ return x.id === id; });
-    if(!t) return;
-    t.done = !t.done;
-    t.doneAt = t.done ? new Date().toISOString() : null;
-    t.updatedAt = new Date().toISOString();
-    saveTodos(todos);
-    renderTodo();
-    renderHome();
-  }
-
-  function deleteTodo(id){
-    var t = todos.find(function(x){ return x.id === id; });
-    if(!t) return;
-    var sameSeries = t.seriesId ? todos.filter(function(x){ return x.seriesId === t.seriesId; }) : [];
-    askConfirm({
-      title:"删除待办",
-      msg:"确定要删除「<b>"+esc(t.title)+"</b>」吗？",
-      sub: sameSeries.length > 1
-        ? "这是一个重复待办，同系列共有 "+sameSeries.length+" 项。<br>只会删除当前这一项，其他日期不受影响。"
-        : esc(cnDate(t.date)),
-      warn:"此操作不可恢复。",
-      onOk:function(){
-        todos = todos.filter(function(x){ return x.id !== id; });
-        saveTodos(todos);
-        renderTodo();
-        renderHome();
-      }
-    });
-  }
 
   // ================= 今日工作台 =================
 
   function daysBetween(a, b){ return Math.round((pdate(b) - pdate(a)) / 86400000); }
 
-  // 某节课是否已经做过课堂登记
-  function courseLogged(c){
-    return lessonLogs.some(function(l){
-      if(l.date !== c.date) return false;
-      if(c.classId && l.classId === c.classId) return true;
-      var cls = classes.find(function(x){ return x.id === l.classId; });
-      if(cls && cls.name === c.title) return true;
-      return (c.studentIds||[]).some(function(sid){ return l.students && l.students[sid]; });
-    });
-  }
-
   function buildHomeData(){
     var today = todayStr();
     var todayCourses = coursesOn(today);
-
-    // 待登记：今天及过去 7 天内已排课/已完成/补课，但还没做课堂登记
-    var pending = courses.filter(function(c){
-      if(c.status === "cancelled" || c.status === "leave") return false;
-      var d = daysBetween(c.date, today);
-      return d >= 0 && d <= 7 && !courseLogged(c);
-    }).sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); });
 
     // 剩余课时不足
     var lowHours = students.filter(function(s){
@@ -7504,17 +7297,9 @@
       return c.status === "completed" && (c.settlementStatus||"unpaid") !== "paid";
     });
 
-    // 攒够 4 次登记、还没做过阶段分析的学生
-    var needAnalysis = students.filter(function(s){
-      var logs = studentLogs(s.id);
-      if(logs.length < 4) return false;
-      var done = Object.keys(analyses).some(function(k){ return k.indexOf(s.id + "|") === 0; });
-      return !done;
-    });
-
     return {
-      today: today, todayCourses: todayCourses, pending: pending,
-      lowHours: lowHours, expiring: expiring, unsettled: unsettled, needAnalysis: needAnalysis
+      today: today, todayCourses: todayCourses,
+      lowHours: lowHours, expiring: expiring, unsettled: unsettled
     };
   }
 
@@ -7532,14 +7317,9 @@
     var unsettledSum = d.unsettled.reduce(function(s,c){ return s + calcPay(c); }, 0);
     var alertCount = d.lowHours.length + d.expiring.length;
 
-    var tdToday = todos.filter(function(t){ return t.date === d.today && !t.done; });
-    var tdOver = overdueTodos();
 
     var stats = [
       {v:d.todayCourses.length, k:"今日课程", ic:"📅", bg:"var(--primary-light)", col:"var(--primary)", go:"calendar"},
-      {v:d.pending.length, k:"待课堂登记", ic:"✍️", bg:"var(--warn-light)", col:"#B07C20", go:"lesson"},
-      {v:tdToday.length + tdOver.length, k:"待办事项", ic:"📝", bg:"var(--primary-light)", col:"var(--primary)", go:"todo",
-       sub: tdOver.length ? ("含逾期 "+tdOver.length) : ""},
       {v:alertCount, k:"续费/到期预警", ic:"🔔", bg:"var(--danger-light)", col:"#D14545", go:"students"},
       {v:d.unsettled.length, k:"未结算课程", ic:"💰", bg:"var(--success-light)", col:"#0E8A66", go:"calendar",
        sub: unsettledSum > 0 ? money(unsettledSum) : ""}
@@ -7558,47 +7338,25 @@
       tEl.innerHTML = "<div class='hm-empty'><span class='ic'>☕</span>今天没有排课，好好休息</div>";
     } else {
       tEl.innerHTML = d.todayCourses.map(function(c){
-        var logged = courseLogged(c);
         return "<div class='hm-lesson' style='border-left-color:"+courseColor(c)+"'>" +
           "<div class='tm'>"+esc(c.startTime)+"</div>" +
           "<div class='info'><b>"+esc(c.title)+"</b>" +
             "<span>"+esc(c.startTime)+"-"+esc(c.endTime)+" ｜ "+esc(courseStudentNames(c))+
             (c.locationNameSnapshot ? " ｜ "+esc(c.locationNameSnapshot) : "")+"</span></div>" +
           "<span class='pill p-"+c.status+"'>"+STATUS_LABEL[c.status]+"</span>" +
-          (logged ? "<span class='pill p-completed'>已登记</span>"
-                  : "<button class='btn btn-ghost btn-sm' data-hmlog='"+esc(c.date)+"|"+esc(c.title)+"|"+esc(c.classId||"")+"'>去登记</button>") +
         "</div>";
       }).join("");
     }
 
     // 需要关注
     var alerts = [];
-    if(tdOver.length){
-      alerts.push({cls:"hm-a-danger", ic:"⚠️", t:"有 "+tdOver.length+" 项待办已逾期",
-        n: tdOver.slice(0,4).map(function(t){ return t.title+"（"+t.date+"）"; }).join("、") +
-           (tdOver.length > 4 ? " 等" : ""), go:"todo"});
-    }
-    if(tdToday.length){
-      alerts.push({cls:"hm-a-info", ic:"📝", t:"今天还有 "+tdToday.length+" 项待办",
-        n: tdToday.map(function(t){ return t.title; }).join("、"), go:"todo"});
-    }
-    if(d.pending.length){
-      alerts.push({cls:"hm-a-warn", ic:"✍️", t:"有 "+d.pending.length+" 节课上完还没做课堂登记",
-        n: d.pending.slice(0,4).map(function(c){ return c.title+"（"+c.date+"）"; }).join("、") +
-           (d.pending.length > 4 ? " 等" : ""), go:"lesson"});
-    }
     if(d.lowHours.length){
       alerts.push({cls:"hm-a-danger", ic:"⏳", t:d.lowHours.length+" 名学生剩余课时不足，需要跟进续费",
-        n: d.lowHours.map(function(s){ return s.name+"（剩 "+s.remainingHours+" 节）"; }).join("、"), go:"students",
-        addTodo:"联系家长跟进续费：" + d.lowHours.map(function(s){ return s.name; }).join("、")});
+        n: d.lowHours.map(function(s){ return s.name+"（剩 "+s.remainingHours+" 节）"; }).join("、"), go:"students"});
     }
     if(d.expiring.length){
       alerts.push({cls:"hm-a-warn", ic:"📆", t:d.expiring.length+" 名学生的课程 30 天内到期",
         n: d.expiring.map(function(s){ return s.name+"（"+s.courseExpiry+"）"; }).join("、"), go:"students"});
-    }
-    if(d.needAnalysis.length){
-      alerts.push({cls:"hm-a-info", ic:"📊", t:d.needAnalysis.length+" 名学生已积累 4 次以上登记，可以出阶段分析了",
-        n: d.needAnalysis.map(function(s){ return s.name; }).join("、"), go:"growth"});
     }
     if(d.unsettled.length){
       alerts.push({cls:"hm-a-info", ic:"💰", t:"有 "+d.unsettled.length+" 节已完成课程未结算，合计 "+money(unsettledSum),
@@ -7611,7 +7369,6 @@
           return "<div class='hm-alert "+a.cls+"' data-hmgo='"+a.go+"' style='cursor:pointer;'>" +
             "<span class='ai'>"+a.ic+"</span><div class='ab'><b>"+esc(a.t)+"</b>" +
             "<div class='names'>"+esc(a.n)+"</div>" +
-            (a.addTodo ? "<button class='btn btn-ghost btn-sm' style='margin-top:8px;' data-hmtodo=\""+esc(a.addTodo)+"\">＋ 加入待办</button>" : "") +
             "</div></div>";
         }).join("")
       : "<div class='hm-empty'><span class='ic'>✅</span>暂时没有需要处理的事项</div>";
@@ -7620,24 +7377,19 @@
   // ================= 视图切换 =================
 
   function switchView(view){
-    flushLogDraft();   // 离开课堂登记前先把草稿落地
+    if(["todo","lesson","growth"].indexOf(view) !== -1) view = "home";
+    if(feedbackModule && view !== "feedback" && document.getElementById("view-feedback").classList.contains("active") && !feedbackModule.canLeave()) return;
     document.querySelectorAll(".nav-item").forEach(function(item){
       item.classList.toggle("active", item.getAttribute("data-view") === view);
     });
     document.querySelectorAll(".view").forEach(function(v){
       v.classList.toggle("active", v.id === "view-"+view);
     });
+    if(view === "feedback"){ feedbackModule.open(); }
     if(view === "home"){ renderHome(); }
     if(view === "students"){ renderTable(); }
     if(view === "classes"){ if(detailClassId){ showClassDetail(detailClassId); } else { showClassList(); } }
-    if(view === "lesson"){
-      populateLessonClassSelect();
-      if(!document.getElementById("lessonDate").value) document.getElementById("lessonDate").value = todayStr();
-      loadOrCreateLog();
-    }
-    if(view === "growth"){ bindGrowth(); populateGwStudents(); gwRender(); }
     if(view === "calendar"){ renderCalendar(); }
-    if(view === "todo"){ renderTodo(); }
     if(view === "payroll"){ ensurePayrollFilters(); renderPayroll(); }
     if(view === "backup"){ renderBackupPage(); }
   }
@@ -7753,74 +7505,15 @@
 
   // 今日工作台
   document.getElementById("hmGoCalendar").addEventListener("click", function(){ switchView("calendar"); });
-  document.getElementById("hmGoLesson").addEventListener("click", function(){ switchView("lesson"); });
+  document.getElementById("hmGoFeedback").addEventListener("click", function(){ switchView("feedback"); });
 
   function homeJump(e){
-    // 一键把预警变成待办
-    var mk = e.target.closest("[data-hmtodo]");
-    if(mk){
-      e.stopPropagation();
-      var title = mk.getAttribute("data-hmtodo");
-      var now = new Date().toISOString();
-      todos.push({
-        id: uid(), date: todayStr(), title: title, category: "家长沟通", note: "由工作台预警生成",
-        done:false, doneAt:null, repeat:"", seriesId:null, createdAt: now, updatedAt: now
-      });
-      saveTodos(todos);
-      renderHome();
-      alert("已加入今天的待办。");
-      return;
-    }
-    var log = e.target.closest("[data-hmlog]");
-    if(log){
-      e.stopPropagation();
-      var p = log.getAttribute("data-hmlog").split("|");
-      switchView("lesson");
-      document.getElementById("lessonDate").value = p[0];
-      var matched = classes.find(function(c){ return c.id === p[2]; })
-                 || classes.find(function(c){ return c.name === p[1]; });
-      if(matched) document.getElementById("lessonClassSelect").value = matched.id;
-      loadOrCreateLog();
-      if(!matched) alert("已跳转到课堂登记并填好日期，请在上方选择对应班级。");
-      return;
-    }
     var go = e.target.closest("[data-hmgo]");
     if(go) switchView(go.getAttribute("data-hmgo"));
   }
   document.getElementById("hmStats").addEventListener("click", homeJump);
   document.getElementById("hmToday").addEventListener("click", homeJump);
   document.getElementById("hmAlerts").addEventListener("click", homeJump);
-
-  // 待办日历
-  document.getElementById("btnAddTodo").addEventListener("click", function(){ openTodoDialog(null, tdSelected); });
-  document.getElementById("btnAddTodoToday").addEventListener("click", function(){ openTodoDialog(null, tdSelected); });
-  document.getElementById("tdPrev").addEventListener("click", function(){
-    tdCursor.setMonth(tdCursor.getMonth()-1); renderTodo();
-  });
-  document.getElementById("tdNext").addEventListener("click", function(){
-    tdCursor.setMonth(tdCursor.getMonth()+1); renderTodo();
-  });
-  document.getElementById("tdToday").addEventListener("click", function(){
-    tdCursor = new Date(); tdSelected = dstr(new Date()); renderTodo();
-  });
-  document.getElementById("tdCatFilter").addEventListener("change", renderTodo);
-  document.getElementById("tdHideDone").addEventListener("change", renderTodo);
-
-  document.getElementById("tdMonthWrap").addEventListener("click", function(e){
-    var open = e.target.closest("[data-tdopen]");
-    if(open){ e.stopPropagation(); openTodoDialog(open.getAttribute("data-tdopen")); return; }
-    var day = e.target.closest("[data-tdday]");
-    if(day){ tdSelected = day.getAttribute("data-tdday"); renderTodo(); }
-  });
-
-  function onTodoListClick(e){
-    var el;
-    if((el = e.target.closest("[data-tdtoggle]"))){ toggleTodoDone(el.getAttribute("data-tdtoggle")); return; }
-    if((el = e.target.closest("[data-tdedit]"))){ openTodoDialog(el.getAttribute("data-tdedit")); return; }
-    if((el = e.target.closest("[data-tddel]"))){ deleteTodo(el.getAttribute("data-tddel")); return; }
-  }
-  document.getElementById("tdDayList").addEventListener("click", onTodoListClick);
-  document.getElementById("tdOverdueWrap").addEventListener("click", onTodoListClick);
 
   // 日历排课
   document.getElementById("btnAddCourse").addEventListener("click", function(){ openCourseModal(null, calSelected); });
@@ -7962,11 +7655,10 @@
 
   document.getElementById("classTableBody").addEventListener("click", function(e){
     var t = function(attr){ var el = e.target.closest("["+attr+"]"); return el ? el.getAttribute(attr) : null; };
-    var editId = t("data-cedit"), rosterId = t("data-croster"), batchId = t("data-cbatch"),
+    var editId = t("data-cedit"), rosterId = t("data-croster"),
         detailId = t("data-cdetail"), delId = t("data-cdel");
     if(editId){ openClassModal(editId); return; }
     if(rosterId){ openRosterModal(rosterId); return; }
-    if(batchId){ goToLessonLog(batchId); return; }
     if(detailId){ showClassDetail(detailId); return; }
     if(delId){
       var c = classes.find(function(x){ return x.id === delId; });
@@ -7997,283 +7689,9 @@
   document.getElementById("btnDetailManageRoster").addEventListener("click", function(){
     if(detailClassId) openRosterModal(detailClassId);
   });
-  document.getElementById("btnDetailAddRecord").addEventListener("click", function(){
-    if(detailClassId) goToLessonLog(detailClassId);
-  });
   document.getElementById("btnPrintClassReport").addEventListener("click", function(){
     window.print();
   });
-  // 课堂登记
-  document.getElementById("lessonClassSelect").addEventListener("change", loadOrCreateLog);
-  document.getElementById("lessonDate").addEventListener("change", loadOrCreateLog);
-
-  // 卡片列表上的日期：改了就刷新各卡片的「已登记 / 待登记」状态
-  document.getElementById("lpDate").addEventListener("change", function(){
-    document.getElementById("lessonDate").value = this.value;
-    renderLessonClassCards();
-  });
-
-  // 点班级卡片直接进入登记
-  document.getElementById("lpGrid").addEventListener("click", function(e){
-    var card = e.target.closest("[data-lpclass]");
-    if(!card) return;
-    document.getElementById("lessonClassSelect").value = card.getAttribute("data-lpclass");
-    document.getElementById("lessonDate").value =
-      document.getElementById("lpDate").value || todayStr();
-    loadOrCreateLog();
-  });
-  // 返回班级卡片列表
-  document.getElementById("btnBackToClassPick").addEventListener("click", function(){
-    flushLogDraft();
-    document.getElementById("lessonClassSelect").value = "";
-    curLog = null; curStuId = null;
-    loadOrCreateLog();
-  });
-  document.getElementById("btnSaveLesson").addEventListener("click", handleSaveLesson);
-
-  /* 自动保存的总开关：在整个登记面板上挂一层监听，
-     不管是哪个具体控件、哪个 handler 改了 curLog，都会被这里捕捉到。
-     比逐个 handler 里加保存调用可靠得多。 */
-  (function wireLessonAutosave(){
-    var ws = document.getElementById("lessonWorkspace");
-    if(!ws) return;
-    ["input","change"].forEach(function(ev){
-      ws.addEventListener(ev, function(){ touchLog(); });
-    });
-    // 标签、评级这类是点击操作，不会触发 input 事件
-    ws.addEventListener("click", function(e){
-      if(e.target.closest("#btnSaveLesson")) return;
-      setTimeout(touchLog, 0);   // 等原有 handler 先改完 curLog
-    });
-    ws.addEventListener("focusout", function(){ flushLogDraft(); });
-  })();
-
-  // 班级整体面板交互
-  document.getElementById("lgModulePicker").addEventListener("click", function(e){
-    var el = e.target.closest("[data-modpick]");
-    if(!el || !curLog) return;
-    if(!curLog.modules) curLog.modules = [];
-    toggleIn(curLog.modules, el.getAttribute("data-modpick"));
-    el.classList.toggle("on");
-    renderStuPanel();
-  });
-  document.getElementById("lgCommonPool").addEventListener("click", function(e){
-    // 删除自定义共性问题：判断放在点选之前
-    var del = e.target.closest("[data-lgcommondel]");
-    if(del){
-      e.stopPropagation();
-      var tag = del.getAttribute("data-lgcommondel");
-      askConfirm({
-        title:"删除自定义标签",
-        msg:"确定要删除共性问题「<b>"+esc(tag)+"</b>」吗？",
-        sub:"删除后它不会再出现在共性问题列表里。",
-        okText:"删除标签",
-        onOk:function(){
-          options.classCommonIssues = (options.classCommonIssues || [])
-            .filter(function(t){ return t !== tag; });
-          saveOptions(stripSeeds());
-          if(curLog && curLog.commonIssues){
-            curLog.commonIssues = curLog.commonIssues.filter(function(t){ return t !== tag; });
-          }
-          renderClassLevelPanel();
-        }
-      });
-      return;
-    }
-    var el = e.target.closest("[data-lgcommon]");
-    if(!el || !curLog) return;
-    if(!curLog.commonIssues) curLog.commonIssues = [];
-    toggleIn(curLog.commonIssues, el.getAttribute("data-lgcommon"));
-    el.classList.toggle("selected");
-  });
-  document.getElementById("lgCommonAddBtn").addEventListener("click", function(){
-    var input = document.getElementById("lgCommonAdd");
-    var val = input.value.trim();
-    if(!val || !curLog) return;
-    options.classCommonIssues = options.classCommonIssues || [];
-    if(CLASS_COMMON_ISSUES.indexOf(val) === -1 && options.classCommonIssues.indexOf(val) === -1){
-      options.classCommonIssues.push(val);
-      saveOptions(stripSeeds());
-    }
-    if(!curLog.commonIssues) curLog.commonIssues = [];
-    if(curLog.commonIssues.indexOf(val) === -1) curLog.commonIssues.push(val);
-    input.value = "";
-    renderClassLevelPanel();
-  });
-  document.getElementById("lgCommonAdd").addEventListener("keydown", function(e){
-    if(e.key === "Enter"){ e.preventDefault(); document.getElementById("lgCommonAddBtn").click(); }
-  });
-  document.getElementById("lgContent").addEventListener("input", function(){ if(curLog) curLog.content = this.value; });
-  document.getElementById("lgClassNotes").addEventListener("input", function(){ if(curLog) curLog.classNotes = this.value; });
-  document.getElementById("lessonNoInput").addEventListener("input", function(){ if(curLog) curLog.lessonNo = this.value; });
-
-  // 学生列表切换
-  document.getElementById("lessonStuList").addEventListener("click", function(e){
-    var el = e.target.closest("[data-lgstu]");
-    if(!el) return;
-    curStuId = el.getAttribute("data-lgstu");
-    renderLessonStuList();
-    renderStuPanel();
-  });
-
-  // 学生面板交互（事件委托，避免逐个绑定）
-  var stuPanelEl = document.getElementById("lessonStuPanel");
-  stuPanelEl.addEventListener("click", function(e){
-    var sl = curSl();
-    if(!sl) return;
-    var el;
-
-    if((el = e.target.closest("[data-hwdone]"))){
-      var v = el.getAttribute("data-hwdone");
-      sl.homeworkDone = (sl.homeworkDone === v) ? "" : v;
-      renderStuPanel(); renderLessonStuList(); return;
-    }
-    if((el = e.target.closest("[data-hwarea]"))){
-      toggleIn(sl.homeworkErrorAreas, el.getAttribute("data-hwarea"));
-      el.classList.toggle("selected"); renderLessonStuList(); return;
-    }
-    if((el = e.target.closest("[data-errreason]"))){
-      toggleIn(sl.errorReasons, el.getAttribute("data-errreason"));
-      el.classList.toggle("selected"); return;
-    }
-    if((el = e.target.closest("[data-mrate]"))){
-      var md = ensureMod(el.getAttribute("data-mrate"));
-      var lv = el.getAttribute("data-lv");
-      md.rate = (md.rate === lv) ? "" : lv;
-      renderStuPanel(); renderLessonStuList(); return;
-    }
-    // 删除自定义标签：必须放在标签勾选之前，否则会被当成点选
-    if((el = e.target.closest("[data-mtagdel]"))){
-      e.stopPropagation();
-      removeCustomModTag(el.getAttribute("data-mtagdel"), el.getAttribute("data-kind"), el.getAttribute("data-tag"));
-      return;
-    }
-    if((el = e.target.closest("[data-mbad]"))){
-      var md2 = ensureMod(el.getAttribute("data-mbad"));
-      toggleIn(md2.badTags, el.getAttribute("data-tag"));
-      el.classList.toggle("selected"); return;
-    }
-    if((el = e.target.closest("[data-mgood]"))){
-      var md3 = ensureMod(el.getAttribute("data-mgood"));
-      toggleIn(md3.goodTags, el.getAttribute("data-tag"));
-      el.classList.toggle("selected"); return;
-    }
-    // 模块标签：添加自定义标签并直接选中
-    if((el = e.target.closest("[data-mtagaddbtn]"))){
-      addCustomModTag(el.getAttribute("data-mtagaddbtn"), el.getAttribute("data-kind"));
-      return;
-    }
-    // 听说 / 习题：题型多选，选中后展开对应的错题知识点输入框
-    if((el = e.target.closest("[data-msub]"))){
-      var md4 = ensureMod(el.getAttribute("data-msub"));
-      var st = el.getAttribute("data-st");
-      if(md4.subTypes.indexOf(st) !== -1){
-        md4.subTypes = md4.subTypes.filter(function(x){ return x !== st; });
-        delete md4.subNotes[st];
-        if(md4.subScores) delete md4.subScores[st];
-      } else {
-        md4.subTypes.push(st);
-      }
-      renderStuPanel(); renderLessonStuList(); return;
-    }
-  });
-
-  // 自定义标签输入框回车即添加
-  stuPanelEl.addEventListener("keydown", function(e){
-    if(e.key !== "Enter") return;
-    var t = e.target;
-    if(t.hasAttribute && t.hasAttribute("data-mtagadd")){
-      e.preventDefault();
-      addCustomModTag(t.getAttribute("data-mtagadd"), t.getAttribute("data-kind"));
-    }
-  });
-
-  stuPanelEl.addEventListener("input", function(e){
-    var sl = curSl();
-    if(!sl) return;
-    var t = e.target;
-    if(t.id === "lgWrongItems"){ sl.wrongItems = t.value; renderLessonStuList(); return; }
-    if(t.id === "lgErrorNotes"){ sl.errorNotes = t.value; return; }
-    if(t.id === "lgStudentNotes"){ sl.studentNotes = t.value; renderLessonStuList(); return; }
-    if(t.hasAttribute("data-mwrong")){ ensureMod(t.getAttribute("data-mwrong")).wrongWords = t.value; autoGrow(t); return; }
-    if(t.hasAttribute("data-mnote")){ ensureMod(t.getAttribute("data-mnote")).note = t.value; autoGrow(t); return; }
-    if(t.hasAttribute("data-msubnote")){
-      var mdn = ensureMod(t.getAttribute("data-msubnote"));
-      mdn.subNotes[t.getAttribute("data-st")] = t.value;
-      autoGrow(t);
-      renderLessonStuList();
-      return;
-    }
-  });
-
-  // 得分输入：失焦后重绘以刷新自动评级和对应标签
-  stuPanelEl.addEventListener("change", function(e){
-    var sl = curSl();
-    if(!sl) return;
-    var t = e.target;
-    if(t.hasAttribute("data-mscore")){
-      ensureMod(t.getAttribute("data-mscore")).score = t.value;
-      renderStuPanel(); renderLessonStuList(); return;
-    }
-    if(t.hasAttribute("data-mtotal")){
-      ensureMod(t.getAttribute("data-mtotal")).total = t.value;
-      renderStuPanel(); renderLessonStuList(); return;
-    }
-    // 单词：各题型分别记分，改动后重算总评级
-    if(t.hasAttribute("data-msubscore") || t.hasAttribute("data-msubtotal")){
-      var isScore = t.hasAttribute("data-msubscore");
-      var key = t.getAttribute(isScore ? "data-msubscore" : "data-msubtotal");
-      var stn = t.getAttribute("data-st");
-      var mdx = ensureMod(key);
-      if(!mdx.subScores[stn]) mdx.subScores[stn] = {score:"", total:""};
-      mdx.subScores[stn][isScore ? "score" : "total"] = t.value;
-      renderStuPanel(); renderLessonStuList(); return;
-    }
-  });
-
-  // 成长报告
-  document.getElementById("btnGenAnalysis").addEventListener("click", gwGenerateStage);
-
-  document.getElementById("anCompareSeg").addEventListener("click", function(e){
-    var btn = e.target.closest("[data-cmp]");
-    if(!btn || !anData) return;
-    collectAnEdits();
-    anCompareMode = btn.getAttribute("data-cmp");
-    this.querySelectorAll("button").forEach(function(b){ b.classList.toggle("on", b === btn); });
-    renderAnalysis();
-  });
-
-  document.getElementById("btnDlRadar").addEventListener("click", function(){
-    downloadSVG("radarWrap", (anData ? anData.student.name : "学生") + "_能力雷达图.png");
-  });
-  document.getElementById("btnDlLine").addEventListener("click", function(){
-    downloadSVG("lineWrap", (anData ? anData.student.name : "学生") + "_成长曲线图.png");
-  });
-  document.getElementById("btnSaveAnalysis").addEventListener("click", function(){
-    if(!anData){ return; }
-    collectAnEdits();
-    var btn = this;
-    var old = btn.textContent;
-    btn.textContent = "✓ 已保存";
-    setTimeout(function(){ btn.textContent = old; }, 2000);
-  });
-  document.getElementById("btnExportAnalysisPdf").addEventListener("click", function(){
-    if(!anData) return;
-    collectAnEdits();
-    // 先保存文字内容，再把 textarea 撑到实际高度，保证打印不截断
-    if(reportEditingId) saveCurrentParentReport();
-    var tas = Array.prototype.slice.call(document.querySelectorAll("#gwPanelStage .report-textarea"));
-    var saved = tas.map(function(t){ return t.style.height; });
-    tas.forEach(function(t){ t.style.height = "auto"; t.style.height = (t.scrollHeight + 4) + "px"; });
-
-    document.body.classList.add("printing-analysis");
-    window.print();
-    setTimeout(function(){
-      document.body.classList.remove("printing-analysis");
-      tas.forEach(function(t,i){ t.style.height = saved[i]; });
-    }, 600);
-  });
-
   if(!testStorageAvailable()){
     document.getElementById("storageWarning").style.display = "block";
   }
@@ -8539,6 +7957,12 @@
   window.addEventListener("beforeunload", flushNow);
   window.addEventListener("online", function(){ flushNow(); pullOnReturn(); });
 
+  var feedbackModule = window.LessonFeedback.mount(document.getElementById("view-feedback"), {
+    data: function(){ return {classes:classes, students:students, courses:courses, classStudents:classStudents}; },
+    read: loadFeedback,
+    save: saveFeedback,
+    today: todayStr
+  });
   bootstrap();
 })();
 </script>
